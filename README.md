@@ -1,8 +1,8 @@
 # CyberWallE: SemEval 2020 Task 11: Propaganda Detection
 
 - [ ] Exploratory data analysis
-  - [ ] Label distribution
-  - [ ] Span lengths
+  - [X] Label distribution
+  - [X] Span lengths
 - [ ] Read up on oversampling/data-balancing techniques
 - [ ] Read up on BERT / How to use it?
 - [ ] Look for feature-engineering data sources
