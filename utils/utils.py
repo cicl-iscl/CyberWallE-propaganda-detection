@@ -1,5 +1,5 @@
 import os
-import nltk
+from spacy.lang.en import English
 
 TC_LABELS_FILE = "../datasets/train-task2-TC.labels"
 TRAIN_DATA_FOLDER = "../datasets/train-articles/"
@@ -41,115 +41,83 @@ def get_spans_from_text(labels_file, raw_data_folder, file_to_write):
             f.write('\t'.join(row) + "\n")
 
 
-def annotate_text(labels_file, raw_data_folder, file_to_write):
-
-    # Reading data from the file with labels
-    with open(labels_file) as f:
-        table = f.readlines()
-        table = [row.strip().split() for row in table]
-
-    # Saving mappings document_id->char_idx->labels into dictionaries
-    doc2char_idx = dict()
-    for row in table:
-        doc_id, label, idx_from, idx_to = row[0], row[1], int(row[2]), int(row[3])
-
-        if doc_id not in doc2char_idx.keys():
-            doc2char_idx[doc_id] = dict()
-
-        for idx in range(idx_from, idx_to):
-            if idx not in doc2char_idx[doc_id].keys():
-                doc2char_idx[doc_id][idx] = []
-
-            doc2char_idx[doc_id][idx].append(label)
-
+def annotate_text(raw_data_folder, labels_data_folder, file_to_write):
+    nlp = English()
+    tokenizer = nlp.Defaults.create_tokenizer(nlp)
     output_table = []
+    file_counter = 0
 
-    # Reading all the files from the raw text directory
 
     print("Total number of files - {}".format(len(os.listdir(raw_data_folder))))
 
-    file_counter = 0
-    lost_files = []
+    # Reading all the files from the raw text directory
+    article_file_names = [file_name for file_name in os.listdir(raw_data_folder)
+                          if file_name.endswith(".txt")]
+    article_file_names.sort()
 
-    for filename in os.listdir(raw_data_folder):
-        if filename.endswith(".txt"):
-            doc_id = filename.replace("article", "").replace(".txt", "")
-            print(doc_id)
+    for file_name in article_file_names:
+        label_file_name = file_name.replace(".txt", ".task2-TC.labels")
 
-            if doc_id in doc2char_idx.keys():
-                with open(os.path.join(raw_data_folder, filename)) as f:
-                    file_text = f.read()
+        print("raw_article: {}\tlabel_file: {}".format(file_name, label_file_name))
 
-                    tokens = nltk.word_tokenize(file_text)
+        # Read the labels file with 4 columns of format
+        # doc_id : label_of_span : idx_span_begin : idx_span_end
+        with open(os.path.join(labels_data_folder, label_file_name), encoding="utf-8") as file:
+            rows = file.readlines()
+            rows = [row.strip().split("\t") for row in rows if len(row.split("\t")) == 4]
 
-                    doc_length = len(file_text)
-                    char_idx = 0
+            #Saving mappings char_idx->labels into the dictionary
+            char_idx2label = dict()
+            for row in rows:
+                _, label, idx_from, idx_to = row[0], row[1], int(row[2]), int(row[3])
 
-                    while char_idx < doc_length:
-                        count_updated = False
+                for idx in range(idx_from, idx_to):
+                    if idx not in char_idx2label.keys():
+                        char_idx2label[idx] = []
+                    char_idx2label[idx].append(label)
 
-                        for token in tokens:
-                            if file_text[char_idx:].startswith(token):
+        # Read the article and process the text
+        with open(os.path.join(raw_data_folder, file_name), encoding="utf-8") as file:
+            file_text = file.readlines()
+            file_text = " ".join([line.strip() for line in file_text])
 
-                                if char_idx in doc2char_idx[doc_id].keys():
-                                    label = doc2char_idx[doc_id][char_idx]
-                                else:
-                                    label = ["None"]
+            tokens = tokenizer(file_text)
+            tokens = [str(token) for token in tokens if not str(token).isspace()]
 
-                                output_table.append([doc_id, str(char_idx), str(char_idx+len(token)), token, "|".join(label)])
-                                char_idx += len(token)
-                                count_updated = True
-                                tokens.pop(0)
-                                break
+            if len(tokens) < 100:
+                print(len(tokens))
 
-                        if not count_updated:
-                            char_idx += 1
-            else:
-                lost_files += doc_id
+
+            doc_length = len(file_text)
+            char_idx = 0
+
+            while char_idx < doc_length:
+                if file_text[char_idx].isspace():
+                    char_idx += 1
+                else:
+                    token = tokens[0]
+                    if file_text[char_idx:].startswith(token) and not file_text[char_idx].isspace():
+                        # Check the label of the corresponding char_idx
+                        if char_idx in char_idx2label.keys():
+                            label = char_idx2label[char_idx]
+                        else:
+                            label = ["None"]
+
+                        output_table.append([file_name.replace("article", "").replace(".txt", ""),
+                                             str(char_idx),
+                                             str(char_idx+len(token)),
+                                             token, "|".join(label)])
+                    char_idx += len(token)
+                    tokens.pop(0)
 
         file_counter += 1
-        print("Finished {} files".format(file_counter))
+        print("Finished {} files\n".format(file_counter))
 
-        with open(file_to_write, 'w') as f:
+        with open(file_to_write, 'w', encoding="utf-8") as f:
             for row in output_table:
                 f.write('\t'.join(row) + "\n")
 
-    print("Number of lost files - {}".format(len(lost_files)))
-    print(lost_files)
-
-    # TODO: solve an issue with lost files. 126 files were not processed
-
-    # with open(os.path.join(raw_data_folder), encoding="utf-8") as f:
-    #     file_text = " ".join(f.read().split())
-    #
-    #     tokens = nltk.word_tokenize(file_text)
-    #
-    #     for token in tokens:
-    #         print(token)
-    #
-    #     curr_char = 0
-    #
-    #     while len(tokens) > 0:
-    #         token = tokens[0]
-    #         print("Token ", token)
-    #         print("File Text ", file_text[:20])
-    #         if file_text.startswith(token):
-    #
-    #             if curr_char in doc2char_idx[doc_id].keys():
-    #                 label = doc2char_idx[doc_id][curr_char]
-    #             else:
-    #                 label = "None"
-    #
-    #             print([curr_char, curr_char+len(token), token, label])
-    #             curr_char += len(token)
-    #             file_text = file_text[len(token):]
-    #             tokens.pop(0)
-    #         else:
-    #             curr_char += 1
-    #             file_text = file_text[1:]
-
-
 if __name__ == '__main__':
-    TEST = "../datasets/train-articles/article111111111.txt"
+    LABELS_DATA_FOLDER = "../datasets/train-labels-task2-technique-classification/"
     # get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER, "../data/train-task2-TC-with-spans.labels")
-    annotate_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER, "../data/train-data.tsv")
+    # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER, "../data/train-data.tsv")
