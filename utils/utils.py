@@ -18,7 +18,7 @@ def get_spans_from_text(labels_file, raw_data_folder, file_to_write):
     :param raw_data_folder: dir of folder with texts
     :param file_to_write: directory of the file to write
     """
-    with open(labels_file) as f:
+    with open(labels_file, encoding='utf8') as f:
         table = f.readlines()
         table = [row.split() for row in table]
 
@@ -33,11 +33,11 @@ def get_spans_from_text(labels_file, raw_data_folder, file_to_write):
 
         # read the file if it's not opened yet
         if str(doc_id) != open_doc_id:
-            with open(os.path.join(raw_data_folder, "article{}.txt".format(doc_id))) as f:
+            with open(os.path.join(raw_data_folder, "article{}.txt".format(doc_id)), encoding='utf8') as f:
                 open_doc_txt = f.read()
                 open_doc_id = doc_id
 
-        span = open_doc_txt[from_id:to_id].strip()
+        span = open_doc_txt[from_id:to_id].strip().replace('\n', ' ')
         output_table.append(row + [span])
 
     with open(file_to_write, 'w') as f:
@@ -184,6 +184,6 @@ def si_predictions_to_spans(si_predictions_file, span_file):
 
 if __name__ == '__main__':
     # LABELS_DATA_FOLDER = "../datasets/train-labels-task2-technique-classification/"
-    # get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER, "../data/train-task2-TC-with-spans.labels")
+    get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER, "../data/train-task2-TC-with-spans.labels")
     # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER, "../data/train-data.tsv")
-    si_predictions_to_spans(SI_PREDICTIONS_FILE, SI_SPANS_FILE)
+    # si_predictions_to_spans(SI_PREDICTIONS_FILE, SI_SPANS_FILE)
