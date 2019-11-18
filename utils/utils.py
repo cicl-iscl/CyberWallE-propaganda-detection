@@ -50,7 +50,7 @@ def annotate_text(raw_data_folder, labels_data_folder, file_to_write):
     tokenizer = nlp.Defaults.create_tokenizer(nlp)
     output_table = []
     file_counter = 0
-    sent_number = 0
+    sent_no_total = 0
 
 
     print("Total number of files - {}".format(len(os.listdir(raw_data_folder))))
@@ -82,53 +82,78 @@ def annotate_text(raw_data_folder, labels_data_folder, file_to_write):
                     char_idx2label[idx].append(label)
 
         # Read the article and process the text
-        with open(os.path.join(raw_data_folder, file_name), encoding="utf-8") as file:
+        with open(os.path.join(raw_data_folder, file_name),
+                  encoding="utf-8") as file:
             file_text = file.readlines()
             file_text = " ".join([line.strip() for line in file_text])
 
-            tokens = tokenizer(file_text)
-            tokens = [str(token) for token in tokens if not str(token).isspace()]
+            # Normalizing punctuation marks to help the tokenizer.
+            file_text = file_text.replace('“', '"').replace('”', '"')
+            file_text = file_text.replace("’", "'").replace("‘", "'")
+
             sentences = sent_tokenize(file_text)
-            tokenized_sents = [tokenizer(sentence) for sentence in sentences]
-            first_tokens = []
-            for sent in tokenized_sents:
-                first_tokens.append(sent[0])
+            sent_indices = [file_text.find(sent) for sent in sentences]
+            sent_indices.append(len(file_text))
+            sent_no = -1
+            for i in sent_indices[:-1]:
+                sent_no += 1
+                sent_no_total += 1
+                max_idx = sent_indices[sent_no + 1]  # start of next sent
+                tokens = tokenizer(sentences[sent_no])
+                for token in tokens:
+                    token = str(token)
+                    token_idx = file_text.find(token, i, max_idx)
+                    # Check the label of the corresponding char_idx
+                    label = char_idx2label.get(token_idx, ['None'])
+                    i = token_idx + len(token)
+                    output_table.append([file_name.replace("article", "")
+                                                  .replace(".txt", ""),
+                                         str(sent_no_total),
+                                         str(token_idx),
+                                         str(i),
+                                         token,
+                                         "|".join(label)])
 
-            if len(tokens) < 100:
-                print(len(tokens))
+            # tokens = tokenizer(file_text)
+            # tokens = [str(token) for token in tokens if not str(token).isspace()]
+            # sentences = sent_tokenize(file_text)
+            # tokenized_sents = [tokenizer(sentence) for sentence in sentences]
+            # first_tokens = []
+            # for sent in tokenized_sents:
+            #     first_tokens.append(sent[0])
 
+            # if len(tokens) < 100:
+            #     print(len(tokens))
 
-            doc_length = len(file_text)
-            char_idx = 0
+            # doc_length = len(file_text)
+            # char_idx = 0
 
+            # while char_idx < doc_length:
+            #     if file_text[char_idx].isspace():
+            #         char_idx += 1
+            #     else:
+            #         token = tokens[0]
 
-            while char_idx < doc_length:
-                if file_text[char_idx].isspace():
-                    char_idx += 1
-                else:
-                    token = tokens[0]
+            #         if first_tokens and token == str(first_tokens[0]):
+            #             # print(token)
+            #             # print(first_tokens[0])
+            #             sent_number += 1
+            #             # print(sent_number)
+            #             first_tokens.pop(0)
 
-                    if first_tokens and token == str(first_tokens[0]):
-                        print(token)
-                        print(first_tokens[0])
-                        sent_number = sent_number + 1
-                        print(sent_number)
-                        first_tokens.pop(0)
+            #         if file_text[char_idx:].startswith(token) and not file_text[char_idx].isspace():
+            #             # Check the label of the corresponding char_idx
+            #             if char_idx in char_idx2label.keys():
+            #                 label = char_idx2label[char_idx]
+            #             else:
+            #                 label = ["None"]
 
-
-                    if file_text[char_idx:].startswith(token) and not file_text[char_idx].isspace():
-                        # Check the label of the corresponding char_idx
-                        if char_idx in char_idx2label.keys():
-                            label = char_idx2label[char_idx]
-                        else:
-                            label = ["None"]
-
-                        output_table.append([file_name.replace("article", "").replace(".txt", ""), str(sent_number),
-                                             str(char_idx),
-                                             str(char_idx+len(token)),
-                                             token, "|".join(label)])
-                    char_idx += len(token)
-                    tokens.pop(0)
+            #             output_table.append([file_name.replace("article", "").replace(".txt", ""), str(sent_number),
+            #                                  str(char_idx),
+            #                                  str(char_idx+len(token)),
+            #                                  token, "|".join(label)])
+            #         char_idx += len(token)
+            #         tokens.pop(0)
 
         file_counter += 1
         print("Finished {} files\n".format(file_counter))
@@ -183,7 +208,7 @@ def si_predictions_to_spans(si_predictions_file, span_file):
 
 
 if __name__ == '__main__':
-    # LABELS_DATA_FOLDER = "../datasets/train-labels-task2-technique-classification/"
-    get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER, "../data/train-task2-TC-with-spans.labels")
-    # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER, "../data/train-data.tsv")
+    LABELS_DATA_FOLDER = "../datasets/train-labels-task2-technique-classification/"
+    # get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER, "../data/train-task2-TC-with-spans.labels")
+    annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER, "../data/train-data-with-sents.tsv")
     # si_predictions_to_spans(SI_PREDICTIONS_FILE, SI_SPANS_FILE)
