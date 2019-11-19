@@ -52,7 +52,6 @@ def annotate_text(raw_data_folder, labels_data_folder, file_to_write):
     file_counter = 0
     sent_no_total = 0
 
-
     print("Total number of files - {}".format(len(os.listdir(raw_data_folder))))
 
     # Reading all the files from the raw text directory
@@ -92,8 +91,14 @@ def annotate_text(raw_data_folder, labels_data_folder, file_to_write):
             file_text = file_text.replace("’", "'").replace("‘", "'")
 
             sentences = sent_tokenize(file_text)
-            sent_indices = [file_text.find(sent) for sent in sentences]
+            sent_indices = []
+            idx = 0
+            for sent in sentences:
+                idx = file_text.find(sent, idx)
+                sent_indices.append(idx)
+                idx += len(sent)
             sent_indices.append(len(file_text))
+
             sent_no = -1
             for i in sent_indices[:-1]:
                 sent_no += 1
@@ -114,55 +119,12 @@ def annotate_text(raw_data_folder, labels_data_folder, file_to_write):
                                          token,
                                          "|".join(label)])
 
-            # tokens = tokenizer(file_text)
-            # tokens = [str(token) for token in tokens if not str(token).isspace()]
-            # sentences = sent_tokenize(file_text)
-            # tokenized_sents = [tokenizer(sentence) for sentence in sentences]
-            # first_tokens = []
-            # for sent in tokenized_sents:
-            #     first_tokens.append(sent[0])
-
-            # if len(tokens) < 100:
-            #     print(len(tokens))
-
-            # doc_length = len(file_text)
-            # char_idx = 0
-
-            # while char_idx < doc_length:
-            #     if file_text[char_idx].isspace():
-            #         char_idx += 1
-            #     else:
-            #         token = tokens[0]
-
-            #         if first_tokens and token == str(first_tokens[0]):
-            #             # print(token)
-            #             # print(first_tokens[0])
-            #             sent_number += 1
-            #             # print(sent_number)
-            #             first_tokens.pop(0)
-
-            #         if file_text[char_idx:].startswith(token) and not file_text[char_idx].isspace():
-            #             # Check the label of the corresponding char_idx
-            #             if char_idx in char_idx2label.keys():
-            #                 label = char_idx2label[char_idx]
-            #             else:
-            #                 label = ["None"]
-
-            #             output_table.append([file_name.replace("article", "").replace(".txt", ""), str(sent_number),
-            #                                  str(char_idx),
-            #                                  str(char_idx+len(token)),
-            #                                  token, "|".join(label)])
-            #         char_idx += len(token)
-            #         tokens.pop(0)
-
         file_counter += 1
         print("Finished {} files\n".format(file_counter))
 
         with open(file_to_write, 'w', encoding="utf-8") as f:
             for row in output_table:
                 f.write('\t'.join(row) + "\n")
-
-#At sentence boundary, print out sentence number, a
 
 
 # TODO deal with spans contained in other spans
