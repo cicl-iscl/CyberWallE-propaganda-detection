@@ -90,7 +90,8 @@ def annotate_text(raw_data_folder, labels_data_folder, file_to_write, max_sent_l
         with open(os.path.join(raw_data_folder, file_name),
                   encoding="utf-8") as file:
             file_text = file.readlines()
-            file_text = " ".join([line.strip() for line in file_text])
+            # Keep linebreaks for better sentence splitting
+            file_text = ''.join([line for line in file_text])
 
             # Normalizing punctuation marks to help the tokenizer.
             file_text = file_text.replace('“', '"').replace('”', '"')
@@ -98,33 +99,45 @@ def annotate_text(raw_data_folder, labels_data_folder, file_to_write, max_sent_l
 
             sentences = []
             if improved_sent_splitting:
-                sentences_raw = splitter.sentences_from_text(file_text)
-                for sent in sentences_raw:
-                    if len(sent) <= max_sent_len:
-                        sentences.append(sent)
-                        continue
-                    if '"' in sent:
-                        for i, sent_begin_quote in enumerate(sent.split(' "')):
-                            for j, sent_fragment in enumerate(
-                                    sent_begin_quote.split('"')):
-                                if j == 0 and i > 0:
-                                    sent_fragment = ' "' + sent_fragment
-                                elif j > 0:
-                                    sent_fragment += '"'
+                paragraphs = file_text.split('\n')
+                for para in paragraphs:
+                    para = para.strip()
+                    sentences_raw = splitter.sentences_from_text(para)
+                    for sent in sentences_raw:
+                        sent = sent.strip()
+                        tokens = tokenizer(sent)
+                        if len(tokens) <= max_sent_len:
+                            if len(sent) == 0:
+                                continue
+                            sentences.append(sent)
+                            continue
+
+                        # TODO make sure this actually reduces the sentences to 35 tokens max
+                        if '"' in sent:
+                            for i, sent_fragment in enumerate(sent.split('"')):
+                                if i % 2 == 1:  # Inside a quote
+                                    sent_fragment = '"' + sent_fragment + '"'
+                                else:
+                                    sent_fragment = sent_fragment.strip()
+                                    if len(sent_fragment) == 0:
+                                        continue
                                 sentences.append(sent_fragment)
-                    else:
-                        # TODO
-                        sentences.append(sent)
+                        else:
+                            # TODO
+                            sentences.append(sent.strip())
             else:
                 # Cut long sentences into fragments that are (up to)
                 # max_sent_len characters long
                 # (the last fragment in a sentence might be shorter)
+                file_text = file_text.replace('\n', ' ')
                 sentences_raw = sent_tokenize(file_text)
                 for sent in sentences_raw:
                     tokens = tokenizer(sent)
                     n_toks = len(tokens)
                     if n_toks <= max_sent_len:
-                        sentences.append(sent)
+                        if n_toks == 0:
+                            continue
+                        sentences.append(sent.strip())
                         continue
                     tok_idx = 0
                     fragment_start = 0
@@ -139,6 +152,11 @@ def annotate_text(raw_data_folder, labels_data_folder, file_to_write, max_sent_l
                         tok_idx += max_sent_len
                         fragment_start = fragment_end
 
+            try:
+                sentences.remove('')
+            except ValueError:
+                pass  # No empty snippets in the first place
+
             sent_indices = []
             idx = 0
             for sent in sentences:
@@ -152,7 +170,7 @@ def annotate_text(raw_data_folder, labels_data_folder, file_to_write, max_sent_l
                 sent_no += 1
                 sent_no_total += 1
                 max_idx = sent_indices[sent_no + 1]  # start of next sent
-                tokens = tokenizer(sentences[sent_no])
+                tokens = tokenizer(sentences[sent_no].strip())
                 for token in tokens:
                     token = str(token)
                     token_idx = file_text.find(token, i, max_idx)
@@ -220,9 +238,12 @@ def si_predictions_to_spans(si_predictions_file, span_file):
 if __name__ == '__main__':
     LABELS_DATA_FOLDER = "../datasets/train-labels-task2-technique-classification/"
     # get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER, "../data/train-task2-TC-with-spans.labels")
-    annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
-                  "../data/train-data-with-sents-baseline.tsv",
-                  improved_sent_splitting=False)
+
     # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
-    #               "../data/train-data-with-sents-improved.tsv")
-    # si_predictions_to_spans(SI_PREDICTIONS_FILE, SI_SPANS_FILE)
+    #               "../data/train-data-with-sents-baseline.tsv",
+    #               improved_sent_splitting=False)    # an
+
+    annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
+                  "../data/train-data-with-sents-improved.tsv",
+                  improved_sent_splitting=True)
+    si_predictions_to_spans(SI_PREDICTIONS_FILE, SI_SPANS_FILE)
