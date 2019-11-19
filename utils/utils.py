@@ -1,6 +1,7 @@
 import os
 from spacy.lang.en import English
 from nltk.tokenize import sent_tokenize
+from nltk.tokenize.punkt import PunktSentenceTokenizer, PunktParameters
 
 TC_LABELS_FILE = "../datasets/train-task2-TC.labels"
 TRAIN_DATA_FOLDER = "../datasets/train-articles/"
@@ -45,9 +46,14 @@ def get_spans_from_text(labels_file, raw_data_folder, file_to_write):
             f.write('\t'.join(row) + "\n")
 
 
-def annotate_text(raw_data_folder, labels_data_folder, file_to_write):
+def annotate_text(raw_data_folder, labels_data_folder, file_to_write, max_sent_len=35, improved_sent_splitting=True):
     nlp = English()
     tokenizer = nlp.Defaults.create_tokenizer(nlp)
+    if improved_sent_splitting:
+        punkt_param = PunktParameters()
+        punkt_param.abbrev_types = set(['dr', 'vs', 'mr', 'mrs', 'prof', 'inc', 'ms', 'rep', 'u.s', 'feb', 'sen'])
+        splitter = PunktSentenceTokenizer(punkt_param)
+        splitter.PUNCTUATION = tuple(';:,.!?"')
     output_table = []
     file_counter = 0
     sent_no_total = 0
@@ -90,7 +96,49 @@ def annotate_text(raw_data_folder, labels_data_folder, file_to_write):
             file_text = file_text.replace('“', '"').replace('”', '"')
             file_text = file_text.replace("’", "'").replace("‘", "'")
 
-            sentences = sent_tokenize(file_text)
+            sentences = []
+            if improved_sent_splitting:
+                sentences_raw = splitter.sentences_from_text(file_text)
+                for sent in sentences_raw:
+                    if len(sent) <= max_sent_len:
+                        sentences.append(sent)
+                        continue
+                    if '"' in sent:
+                        for i, sent_begin_quote in enumerate(sent.split(' "')):
+                            for j, sent_fragment in enumerate(
+                                    sent_begin_quote.split('"')):
+                                if j == 0 and i > 0:
+                                    sent_fragment = ' "' + sent_fragment
+                                elif j > 0:
+                                    sent_fragment += '"'
+                                sentences.append(sent_fragment)
+                    else:
+                        # TODO
+                        sentences.append(sent)
+            else:
+                # Cut long sentences into fragments that are (up to)
+                # max_sent_len characters long
+                # (the last fragment in a sentence might be shorter)
+                sentences_raw = sent_tokenize(file_text)
+                for sent in sentences_raw:
+                    tokens = tokenizer(sent)
+                    n_toks = len(tokens)
+                    if n_toks <= max_sent_len:
+                        sentences.append(sent)
+                        continue
+                    tok_idx = 0
+                    fragment_start = 0
+                    fragment_end = 0
+                    while tok_idx < n_toks:
+                        # This is so hacky >:(
+                        sent_fragment = ''
+                        for token in tokens[tok_idx:tok_idx + max_sent_len]:
+                            fragment_end = sent.find(str(token),
+                                                     fragment_end) + len(token)
+                        sentences.append(sent[fragment_start:fragment_end].strip())
+                        tok_idx += max_sent_len
+                        fragment_start = fragment_end
+
             sent_indices = []
             idx = 0
             for sent in sentences:
@@ -172,5 +220,9 @@ def si_predictions_to_spans(si_predictions_file, span_file):
 if __name__ == '__main__':
     LABELS_DATA_FOLDER = "../datasets/train-labels-task2-technique-classification/"
     # get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER, "../data/train-task2-TC-with-spans.labels")
-    annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER, "../data/train-data-with-sents.tsv")
+    annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
+                  "../data/train-data-with-sents-baseline.tsv",
+                  improved_sent_splitting=False)
+    # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
+    #               "../data/train-data-with-sents-improved.tsv")
     # si_predictions_to_spans(SI_PREDICTIONS_FILE, SI_SPANS_FILE)

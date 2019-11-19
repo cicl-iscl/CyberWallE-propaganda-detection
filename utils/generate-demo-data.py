@@ -45,7 +45,7 @@ if __name__ == '__main__':
     # We could get the arguments via sys.argv, but we don't need to run this
     # method a lot...
 
-    labels2bio('../data/train-data-with-sents.tsv',
-               '../data/train-data-bio.tsv')
-    labels2bio('../data/train-data-with-sents.tsv',
-               '../data/si-sample-predictions.tsv', False)
+    labels2bio('../data/train-data-with-sents-baseline.tsv',
+               '../data/train-data-bio-baseline.tsv')
+    # labels2bio('../data/train-data-with-sents.tsv',
+    #            '../data/si-sample-predictions.tsv', False)
