@@ -7,7 +7,7 @@ TC_LABELS_FILE = "../datasets/train-task2-TC.labels"
 TRAIN_DATA_FOLDER = "../datasets/train-articles/"
 DEV_DATA_FOLDER = "../datasets/dev-articles/"
 SI_PREDICTIONS_FILE = '../data/si-sample-predictions.tsv'
-SI_SPANS_FILE = '../data/si-sample-spans.tsv'
+SI_SPANS_FILE = '../data/si-sample-spans.txt'
 
 
 def get_spans_from_text(labels_file, raw_data_folder, file_to_write):
@@ -262,9 +262,9 @@ if __name__ == '__main__':
     # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
     #               "../data/train-data-with-sents-improved.tsv",
     #               improved_sent_splitting=True)
-    # si_predictions_to_spans(SI_PREDICTIONS_FILE, SI_SPANS_FILE)
+    si_predictions_to_spans(SI_PREDICTIONS_FILE, SI_SPANS_FILE)
 
-    annotate_text(DEV_DATA_FOLDER, None,
-                  "../data/dev-baseline.tsv",
-                  improved_sent_splitting=False,
-                  training=False)
+    # annotate_text(DEV_DATA_FOLDER, None,
+    #               "../data/dev-baseline.tsv",
+    #               improved_sent_splitting=False,
+    #               training=False)
