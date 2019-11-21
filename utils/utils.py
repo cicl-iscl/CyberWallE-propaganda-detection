@@ -265,6 +265,6 @@ if __name__ == '__main__':
     # si_predictions_to_spans(SI_PREDICTIONS_FILE, SI_SPANS_FILE)
 
     annotate_text(DEV_DATA_FOLDER, None,
-                  "../data/dev-bio-baseline.tsv",
+                  "../data/dev-baseline.tsv",
                   improved_sent_splitting=False,
                   training=False)
