@@ -209,7 +209,6 @@ def annotate_text(raw_data_folder, labels_data_folder, file_to_write,
                 f.write('\t'.join(row) + "\n")
 
 
-# TODO deal with spans contained in other spans
 # This relies on predictions ordered by article ID
 def si_predictions_to_spans(si_predictions_file, span_file):
     # Make sure we get the last prediction at the end of the line-reading loop
@@ -217,7 +216,7 @@ def si_predictions_to_spans(si_predictions_file, span_file):
     lines = []
     with open(si_predictions_file, encoding='utf8') as infile:
         lines = infile.readlines()
-        lines += ['end-of-file\t-1\t-1\tdummy\tO\n']
+        lines += ['end-of-file\t-1\t-1\t-1\tdummy\tO\n']
 
     with open(span_file, 'w', encoding='utf8') as outfile:
         prev_label = 'O'
@@ -227,10 +226,11 @@ def si_predictions_to_spans(si_predictions_file, span_file):
         for line in lines:
             fields = line.strip().split('\t')
             article = fields[0]
-            span_start = fields[1]
-            span_end = fields[2]
-            # fields[3] is the word itself
-            label = fields[4]
+            # fields[1] is the sentence number
+            span_start = fields[2]
+            span_end = fields[3]
+            # fields[4] is the word itself
+            label = fields[5]
 
             # Ending a span: I-O, B-O, I-B, B-B
             if prev_label != 'O' and \
