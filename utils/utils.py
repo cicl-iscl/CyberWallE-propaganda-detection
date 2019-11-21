@@ -5,6 +5,7 @@ from nltk.tokenize.punkt import PunktSentenceTokenizer, PunktParameters
 
 TC_LABELS_FILE = "../datasets/train-task2-TC.labels"
 TRAIN_DATA_FOLDER = "../datasets/train-articles/"
+DEV_DATA_FOLDER = "../datasets/dev-articles/"
 SI_PREDICTIONS_FILE = '../data/si-sample-predictions.tsv'
 SI_SPANS_FILE = '../data/si-sample-spans.tsv'
 
@@ -46,45 +47,57 @@ def get_spans_from_text(labels_file, raw_data_folder, file_to_write):
             f.write('\t'.join(row) + "\n")
 
 
-def annotate_text(raw_data_folder, labels_data_folder, file_to_write, max_sent_len=35, improved_sent_splitting=True):
+def annotate_text(raw_data_folder, labels_data_folder, file_to_write,
+                  max_sent_len=35, improved_sent_splitting=True,
+                  training=True):
     nlp = English()
     tokenizer = nlp.Defaults.create_tokenizer(nlp)
     if improved_sent_splitting:
         punkt_param = PunktParameters()
-        punkt_param.abbrev_types = set(['dr', 'vs', 'mr', 'mrs', 'prof', 'inc', 'ms', 'rep', 'u.s', 'feb', 'sen'])
+        punkt_param.abbrev_types = set(['dr', 'vs', 'mr', 'mrs', 'prof', 'inc',
+                                        'ms', 'rep', 'u.s', 'feb', 'sen'])
         splitter = PunktSentenceTokenizer(punkt_param)
         splitter.PUNCTUATION = tuple(';:,.!?"')
     output_table = []
     file_counter = 0
     sent_no_total = 0
 
-    print("Total number of files - {}".format(len(os.listdir(raw_data_folder))))
+    print("Total number of files - {}".format(
+        len(os.listdir(raw_data_folder))))
 
     # Reading all the files from the raw text directory
-    article_file_names = [file_name for file_name in os.listdir(raw_data_folder)
+    article_file_names = [file_name for file_name in
+                          os.listdir(raw_data_folder)
                           if file_name.endswith(".txt")]
     article_file_names.sort()
 
     for file_name in article_file_names:
-        label_file_name = file_name.replace(".txt", ".task2-TC.labels")
+        if training:
+            label_file_name = file_name.replace(".txt", ".task2-TC.labels")
+            print("raw_article: {}\tlabel_file: {}".format(file_name,
+                                                           label_file_name))
 
-        print("raw_article: {}\tlabel_file: {}".format(file_name, label_file_name))
+            # Read the labels file with 4 columns of format
+            # doc_id : label_of_span : idx_span_begin : idx_span_end
+            with open(os.path.join(labels_data_folder, label_file_name),
+                      encoding="utf-8") as file:
+                rows = file.readlines()
+                rows = [row.strip().split("\t") for row in rows
+                        if len(row.split("\t")) == 4]
 
-        # Read the labels file with 4 columns of format
-        # doc_id : label_of_span : idx_span_begin : idx_span_end
-        with open(os.path.join(labels_data_folder, label_file_name), encoding="utf-8") as file:
-            rows = file.readlines()
-            rows = [row.strip().split("\t") for row in rows if len(row.split("\t")) == 4]
+                # Saving mappings char_idx->labels into the dictionary
+                char_idx2label = dict()
+                for row in rows:
+                    label = row[1]
+                    idx_from = int(row[2])
+                    idx_to = int(row[3])
 
-            #Saving mappings char_idx->labels into the dictionary
-            char_idx2label = dict()
-            for row in rows:
-                _, label, idx_from, idx_to = row[0], row[1], int(row[2]), int(row[3])
-
-                for idx in range(idx_from, idx_to):
-                    if idx not in char_idx2label.keys():
-                        char_idx2label[idx] = []
-                    char_idx2label[idx].append(label)
+                    for idx in range(idx_from, idx_to):
+                        if idx not in char_idx2label.keys():
+                            char_idx2label[idx] = []
+                        char_idx2label[idx].append(label)
+        else:
+            print("raw_article: " + file_name)
 
         # Read the article and process the text
         with open(os.path.join(raw_data_folder, file_name),
@@ -148,7 +161,8 @@ def annotate_text(raw_data_folder, labels_data_folder, file_to_write, max_sent_l
                         for token in tokens[tok_idx:tok_idx + max_sent_len]:
                             fragment_end = sent.find(str(token),
                                                      fragment_end) + len(token)
-                        sentences.append(sent[fragment_start:fragment_end].strip())
+                        sentences.append(sent[fragment_start:fragment_end]
+                                         .strip())
                         tok_idx += max_sent_len
                         fragment_start = fragment_end
 
@@ -174,16 +188,18 @@ def annotate_text(raw_data_folder, labels_data_folder, file_to_write, max_sent_l
                 for token in tokens:
                     token = str(token)
                     token_idx = file_text.find(token, i, max_idx)
-                    # Check the label of the corresponding char_idx
-                    label = char_idx2label.get(token_idx, ['None'])
                     i = token_idx + len(token)
-                    output_table.append([file_name.replace("article", "")
-                                                  .replace(".txt", ""),
-                                         str(sent_no_total),
-                                         str(token_idx),
-                                         str(i),
-                                         token,
-                                         "|".join(label)])
+                    output = [file_name.replace("article", "")
+                                       .replace(".txt", ""),
+                              str(sent_no_total),
+                              str(token_idx),
+                              str(i),
+                              token]
+                    if training:
+                        # Check the label of the corresponding char_idx
+                        label = char_idx2label.get(token_idx, ['None'])
+                        output.append("|".join(label))
+                    output_table.append(output)
 
         file_counter += 1
         print("Finished {} files\n".format(file_counter))
@@ -241,9 +257,14 @@ if __name__ == '__main__':
 
     # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
     #               "../data/train-data-with-sents-baseline.tsv",
-    #               improved_sent_splitting=False)    # an
+    #               improved_sent_splitting=False)
 
-    annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
-                  "../data/train-data-with-sents-improved.tsv",
-                  improved_sent_splitting=True)
-    si_predictions_to_spans(SI_PREDICTIONS_FILE, SI_SPANS_FILE)
+    # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
+    #               "../data/train-data-with-sents-improved.tsv",
+    #               improved_sent_splitting=True)
+    # si_predictions_to_spans(SI_PREDICTIONS_FILE, SI_SPANS_FILE)
+
+    annotate_text(DEV_DATA_FOLDER, None,
+                  "../data/dev-bio-baseline.tsv",
+                  improved_sent_splitting=False,
+                  training=False)
