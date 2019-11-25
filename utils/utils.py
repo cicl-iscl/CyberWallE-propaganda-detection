@@ -112,6 +112,7 @@ def annotate_text(raw_data_folder, labels_data_folder, file_to_write,
 
             sentences = []
             if improved_sent_splitting:
+                # Line breaks -> helps with headlines
                 paragraphs = file_text.split('\n')
                 for para in paragraphs:
                     para = para.strip()
@@ -120,24 +121,58 @@ def annotate_text(raw_data_folder, labels_data_folder, file_to_write,
                         sent = sent.strip()
                         tokens = tokenizer(sent)
                         if len(tokens) <= max_sent_len:
+                            # No need to split the sentence!
                             if len(sent) == 0:
+                                # Can happen when paragraphs are separated by
+                                # several line breaks.
                                 continue
                             sentences.append(sent)
                             continue
 
-                        # TODO make sure this actually reduces the sentences to 35 tokens max
-                        if '"' in sent:
-                            for i, sent_fragment in enumerate(sent.split('"')):
-                                if i % 2 == 1:  # Inside a quote
-                                    sent_fragment = '"' + sent_fragment + '"'
-                                else:
-                                    sent_fragment = sent_fragment.strip()
-                                    if len(sent_fragment) == 0:
+                        # TODO make this recursive
+
+                        # Try splitting based on quotes.
+                        quote_fragments, all_ok = punct_based_split_sent(
+                            tokenizer, sent, max_sent_len, '"')
+                        if all_ok:
+                            sentences += quote_fragments
+                            continue
+
+                        # Other punctuation for splitting: ; :
+                        for quote_frag in quote_fragments:
+                            semicolon_fragments, all_ok =\
+                                punct_based_split_sent(tokenizer, quote_frag,
+                                                       max_sent_len, ';')
+                            if all_ok:
+                                sentences += semicolon_fragments
+                                continue
+
+                            for semicolon_frag in semicolon_fragments:
+                                colon_fragments, all_ok =\
+                                    punct_based_split_sent(tokenizer,
+                                                           semicolon_frag,
+                                                           max_sent_len, ':')
+                                if all_ok:
+                                    sentences += colon_fragments
+                                    continue
+
+                                # Commas:
+                                for col_frag in colon_fragments:
+                                    comma_fragments, all_ok =\
+                                        punct_based_split_sent(tokenizer,
+                                                               col_frag,
+                                                               max_sent_len,
+                                                               ',')
+                                    if all_ok:
+                                        sentences += comma_fragments
                                         continue
-                                sentences.append(sent_fragment)
-                        else:
-                            # TODO
-                            sentences.append(sent.strip())
+
+                                    # Last resort:
+                                    # Split after max_sent_len tokens
+                                    for comma_frag in comma_fragments:
+                                        sentences += forcefully_split_sent(
+                                            tokenizer, comma_frag,
+                                            max_sent_len)
             else:
                 # Cut long sentences into fragments that are (up to)
                 # max_sent_len characters long
@@ -145,26 +180,8 @@ def annotate_text(raw_data_folder, labels_data_folder, file_to_write,
                 file_text = file_text.replace('\n', ' ')
                 sentences_raw = sent_tokenize(file_text)
                 for sent in sentences_raw:
-                    tokens = tokenizer(sent)
-                    n_toks = len(tokens)
-                    if n_toks <= max_sent_len:
-                        if n_toks == 0:
-                            continue
-                        sentences.append(sent.strip())
-                        continue
-                    tok_idx = 0
-                    fragment_start = 0
-                    fragment_end = 0
-                    while tok_idx < n_toks:
-                        # This is so hacky >:(
-                        sent_fragment = ''
-                        for token in tokens[tok_idx:tok_idx + max_sent_len]:
-                            fragment_end = sent.find(str(token),
-                                                     fragment_end) + len(token)
-                        sentences.append(sent[fragment_start:fragment_end]
-                                         .strip())
-                        tok_idx += max_sent_len
-                        fragment_start = fragment_end
+                    sentences += forcefully_split_sent(tokenizer, sent,
+                                                       max_sent_len)
 
             try:
                 sentences.remove('')
@@ -184,6 +201,9 @@ def annotate_text(raw_data_folder, labels_data_folder, file_to_write,
                 sent_no += 1
                 sent_no_total += 1
                 max_idx = sent_indices[sent_no + 1]  # start of next sent
+                if improved_sent_splitting:
+                    if len(sentences[sent_no].strip()) < 2:  # single char noise
+                        continue
                 tokens = tokenizer(sentences[sent_no].strip())
                 for token in tokens:
                     token = str(token)
@@ -207,6 +227,69 @@ def annotate_text(raw_data_folder, labels_data_folder, file_to_write,
         with open(file_to_write, 'w', encoding="utf-8") as f:
             for row in output_table:
                 f.write('\t'.join(row) + "\n")
+
+
+# Helper method for annotate_text
+def forcefully_split_sent(tokenizer, sent, max_sent_len):
+    sentences = []
+    tokens = tokenizer(sent)
+    n_toks = len(tokens)
+    if n_toks <= max_sent_len:
+        if n_toks == 0:
+            return []
+        sentences.append(sent.strip())
+        return sentences
+
+    tok_idx = 0
+    fragment_start = 0
+    fragment_end = 0
+    while tok_idx < n_toks:
+        # This is so hacky >:(
+        for token in tokens[tok_idx:tok_idx + max_sent_len]:
+            fragment_end = sent.find(str(token),
+                                     fragment_end) + len(token)
+        sentences.append(sent[fragment_start:fragment_end]
+                         .strip())
+        tok_idx += max_sent_len
+        fragment_start = fragment_end
+    return sentences
+
+
+# Helper method for annotate_text
+def punct_based_split_sent(tokenizer, sent, max_sent_len, punct):
+    if punct not in sent:
+        return [sent], False
+    sents = []
+    tokens = tokenizer(sent)
+    if len(tokens) <= max_sent_len:
+        sents.append(sent)
+        return sents, True
+    # Try splitting along the punctuation mark.
+    sent_fragments = sent.split(punct)
+    n_frags = len(sent_fragments)
+    prev_len = max_sent_len
+    longest = 0
+    for i, sent_fragment in enumerate(sent_fragments):
+        if punct == '"':
+            if i % 2 == 1:  # Inside a quote
+                sent_fragment = '"' + sent_fragment + '"'
+        elif n_frags > 1 or i < n_frags - 1:
+            sent_fragment += punct
+
+        if len(sent_fragment.strip()) == 0:
+            continue
+
+        cur_len = len(tokenizer(sent_fragment.strip()))
+        if cur_len > longest:
+            longest = cur_len
+        # We don't want to end up with a ton of very short sentences.
+        if cur_len + prev_len <= max_sent_len:
+            sents[-1] = sents[-1] + sent_fragment
+            prev_len += cur_len
+        else:
+            sents.append(sent_fragment)
+            prev_len = cur_len
+    return sents, longest <= max_sent_len
 
 
 # This relies on predictions ordered by article ID
@@ -255,16 +338,24 @@ if __name__ == '__main__':
     LABELS_DATA_FOLDER = "../datasets/train-labels-task2-technique-classification/"
     # get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER, "../data/train-task2-TC-with-spans.labels")
 
+    # si_predictions_to_spans(SI_PREDICTIONS_FILE, SI_SPANS_FILE)
+
+    ###### BASELINE
     # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
     #               "../data/train-data-with-sents-baseline.tsv",
     #               improved_sent_splitting=False)
-
-    # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
-    #               "../data/train-data-with-sents-improved.tsv",
-    #               improved_sent_splitting=True)
-    si_predictions_to_spans(SI_PREDICTIONS_FILE, SI_SPANS_FILE)
 
     # annotate_text(DEV_DATA_FOLDER, None,
     #               "../data/dev-baseline.tsv",
     #               improved_sent_splitting=False,
     #               training=False)
+    ######
+
+    annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
+                  "../data/train-data-with-sents-improved.tsv",
+                  improved_sent_splitting=True)
+
+    annotate_text(DEV_DATA_FOLDER, None,
+                  "../data/dev-improved.tsv",
+                  improved_sent_splitting=True,
+                  training=False)

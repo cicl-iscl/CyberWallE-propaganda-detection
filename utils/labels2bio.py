@@ -1,5 +1,5 @@
-# Changes the labels in the training file from category-specific labels
-# to BIO-style labels.
+# Changes labels from category-specific labels to BIO-style labels.
+import sys
 
 
 def overlap(l1, l2):
@@ -42,10 +42,11 @@ def labels2bio(span_file, bio_file, include_sent_number=True):
 
 if __name__ == '__main__':
 
-    # We could get the arguments via sys.argv, but we don't need to run this
-    # method a lot...
+    if len(sys.argv) != 3:
+        sys.stderr.write('Usage:', sys.argv[0] + ' INFILE OUTFILE\n')
+        sys.exit(1)
 
-    labels2bio('../data/train-data-with-sents-baseline.tsv',
-               '../data/train-data-bio-baseline.tsv')
-    # labels2bio('../data/train-data-with-sents.tsv',
-    #            '../data/si-sample-predictions.tsv', False)
+    labels2bio(sys.argv[1], sys.argv[2])
+
+    # labels2bio('../data/train-data-with-sents-baseline.tsv',
+    #            '../data/train-data-bio-baseline.tsv')
