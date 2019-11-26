@@ -200,6 +200,7 @@ def annotate_text(raw_data_folder, labels_data_folder, file_to_write,
                 for token in tokenizer(sent):
                     token = str(token)
                     token_idx = file_text.find(token, i, max_idx)
+                    i = token_idx + len(token)
                     output = [file_name.replace("article", "")
                                        .replace(".txt", ""),
                               str(sent_no_total),
@@ -261,10 +262,6 @@ def punct_based_split_sent(tokenizer, sent, max_sent_len, punct):
     prev_len = max_sent_len
     longest = 0
     for i, sent_fragment in enumerate(sent_fragments):
-        # if punct == '"':
-        #     if i % 2 == 1:  # Inside a quote
-        #         sent_fragment = '"' + sent_fragment + '"'
-        # else
         if n_frags > 1 and i < n_frags - 1:
             sent_fragment += punct
 
