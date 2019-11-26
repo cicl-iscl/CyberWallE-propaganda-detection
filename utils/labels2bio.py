@@ -16,10 +16,12 @@ def labels2bio(span_file, bio_file, include_sent_number=True):
     with open(span_file, encoding='utf8') as infile:
         with open(bio_file, 'w', encoding='utf8') as outfile:
             prev_label = 'None'
+            prev_article = '-1'
             for line in infile:
                 fields = line.strip().split('\t')
+                article = fields[0]
                 label = fields[5]
-                outfile.write(fields[0])
+                outfile.write(article)
                 outfile.write('\t')
                 if include_sent_number:
                     outfile.write(fields[1])
@@ -32,11 +34,12 @@ def labels2bio(span_file, bio_file, include_sent_number=True):
                 outfile.write('\t')
                 if label == 'None':
                     outfile.write('O')
-                elif overlap(prev_label, label):
+                elif overlap(prev_label, label) and prev_article == article:
                     outfile.write('I')
                 else:
                     outfile.write('B')
                 prev_label = label
+                prev_article = article
                 outfile.write('\n')
 
 
