@@ -6,8 +6,8 @@ from nltk.tokenize.punkt import PunktSentenceTokenizer, PunktParameters
 TC_LABELS_FILE = "../datasets/train-task2-TC.labels"
 TRAIN_DATA_FOLDER = "../datasets/train-articles/"
 DEV_DATA_FOLDER = "../datasets/dev-articles/"
-SI_PREDICTIONS_FILE = '../data/si-sample-predictions.tsv'
-SI_SPANS_FILE = '../data/si-sample-spans.txt'
+SI_PREDICTIONS_FILE = '../data/dev_predictions_bio.tsv'
+SI_SPANS_FILE = '../data/dev_predictions_spans.txt'
 
 
 def get_spans_from_text(labels_file, raw_data_folder, file_to_write):
@@ -325,8 +325,9 @@ def si_predictions_to_spans(si_predictions_file, span_file):
                 outfile.write(prev_span_end)
                 outfile.write('\n')
 
-            # Starting a new span: O-B, O-I, I-B, B-B
-            if label == 'B' or (label == 'I' and prev_label == 'O'):
+            # Starting a new span: O-B, O-I, I-B, B-B, new article
+            if label == 'B' or (label == 'I' and prev_label == 'O') \
+                    or prev_article != article:
                 prev_span_start = span_start
 
             prev_article = article
@@ -338,24 +339,23 @@ if __name__ == '__main__':
     LABELS_DATA_FOLDER = "../datasets/train-labels-task2-technique-classification/"
     # get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER, "../data/train-task2-TC-with-spans.labels")
 
-    # si_predictions_to_spans(SI_PREDICTIONS_FILE, SI_SPANS_FILE)
+    si_predictions_to_spans(SI_PREDICTIONS_FILE, SI_SPANS_FILE)
 
     ###### BASELINE
     # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
-    #               "../data/train-data-with-sents-baseline.tsv",
-    #               improved_sent_splitting=False)
-
+    #               "../data/train-data-with-sents-baseline-20.tsv",
+    #               improved_sent_splitting=False, max_sent_len=20)
     # annotate_text(DEV_DATA_FOLDER, None,
-    #               "../data/dev-baseline.tsv",
+    #               "../data/dev-baseline-20.tsv",
     #               improved_sent_splitting=False,
-    #               training=False)
+    #               training=False, max_sent_len=20)
     ######
 
-    annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
-                  "../data/train-data-with-sents-improved.tsv",
-                  improved_sent_splitting=True)
+    # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
+    #               "../data/train-data-with-sents-improved.tsv",
+    #               improved_sent_splitting=True)
 
-    annotate_text(DEV_DATA_FOLDER, None,
-                  "../data/dev-improved.tsv",
-                  improved_sent_splitting=True,
-                  training=False)
+    # annotate_text(DEV_DATA_FOLDER, None,
+    #               "../data/dev-improved.tsv",
+    #               improved_sent_splitting=True,
+    #               training=False)
