@@ -183,32 +183,23 @@ def annotate_text(raw_data_folder, labels_data_folder, file_to_write,
                     sentences += forcefully_split_sent(tokenizer, sent,
                                                        max_sent_len)
 
-            try:
-                sentences.remove('')
-            except ValueError:
-                pass  # No empty snippets in the first place
-
-            sent_indices = []
-            idx = 0
+            i = 0
             for sent in sentences:
-                idx = file_text.find(sent, idx)
-                sent_indices.append(idx)
-                idx += len(sent)
-            sent_indices.append(len(file_text))
+                sent = sent.strip()
+                i = file_text.find(sent, i)
+                max_idx = i + len(sent)
 
-            sent_no = -1
-            for i in sent_indices[:-1]:
-                sent_no += 1
-                sent_no_total += 1
-                max_idx = sent_indices[sent_no + 1]  # start of next sent
+                if sent == '':
+                    continue
+
                 if improved_sent_splitting:
-                    if len(sentences[sent_no].strip()) < 2:  # single char noise
+                    if len(sent.strip()) < 2:  # single char noise
                         continue
-                tokens = tokenizer(sentences[sent_no].strip())
-                for token in tokens:
+
+                sent_no_total += 1
+                for token in tokenizer(sent):
                     token = str(token)
                     token_idx = file_text.find(token, i, max_idx)
-                    i = token_idx + len(token)
                     output = [file_name.replace("article", "")
                                        .replace(".txt", ""),
                               str(sent_no_total),
@@ -270,10 +261,11 @@ def punct_based_split_sent(tokenizer, sent, max_sent_len, punct):
     prev_len = max_sent_len
     longest = 0
     for i, sent_fragment in enumerate(sent_fragments):
-        if punct == '"':
-            if i % 2 == 1:  # Inside a quote
-                sent_fragment = '"' + sent_fragment + '"'
-        elif n_frags > 1 or i < n_frags - 1:
+        # if punct == '"':
+        #     if i % 2 == 1:  # Inside a quote
+        #         sent_fragment = '"' + sent_fragment + '"'
+        # else
+        if n_frags > 1 and i < n_frags - 1:
             sent_fragment += punct
 
         if len(sent_fragment.strip()) == 0:
@@ -339,23 +331,23 @@ if __name__ == '__main__':
     LABELS_DATA_FOLDER = "../datasets/train-labels-task2-technique-classification/"
     # get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER, "../data/train-task2-TC-with-spans.labels")
 
-    si_predictions_to_spans(SI_PREDICTIONS_FILE, SI_SPANS_FILE)
+    # si_predictions_to_spans(SI_PREDICTIONS_FILE, SI_SPANS_FILE)
 
     ###### BASELINE
     # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
-    #               "../data/train-data-with-sents-baseline-20.tsv",
-    #               improved_sent_splitting=False, max_sent_len=20)
+    #               "../data/train-data-with-sents-baseline-40.tsv",
+    #               improved_sent_splitting=False, max_sent_len=40)
     # annotate_text(DEV_DATA_FOLDER, None,
-    #               "../data/dev-baseline-20.tsv",
+    #               "../data/dev-baseline-40.tsv",
     #               improved_sent_splitting=False,
-    #               training=False, max_sent_len=20)
+    #               training=False, max_sent_len=40)
     ######
 
-    # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
-    #               "../data/train-data-with-sents-improved.tsv",
-    #               improved_sent_splitting=True)
+    annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
+                  "../data/train-data-with-sents-improved.tsv",
+                  improved_sent_splitting=True)
 
-    # annotate_text(DEV_DATA_FOLDER, None,
-    #               "../data/dev-improved.tsv",
-    #               improved_sent_splitting=True,
-    #               training=False)
+    annotate_text(DEV_DATA_FOLDER, None,
+                  "../data/dev-improved.tsv",
+                  improved_sent_splitting=True,
+                  training=False)
