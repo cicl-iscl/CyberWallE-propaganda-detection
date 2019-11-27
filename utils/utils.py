@@ -282,13 +282,17 @@ def punct_based_split_sent(tokenizer, sent, max_sent_len, punct):
 
 
 # This relies on predictions ordered by article ID
-def si_predictions_to_spans(si_predictions_file, span_file):
+def si_predictions_to_spans(si_predictions_file, span_file, label_idx=5):
     # Make sure we get the last prediction at the end of the line-reading loop
     # by adding a dummy line:
     lines = []
     with open(si_predictions_file, encoding='utf8') as infile:
         lines = infile.readlines()
-        lines += ['end-of-file\t-1\t-1\t-1\tdummy\tO\n']
+        eof = 'eof'
+        for i in range(label_idx - 1):
+            eof += '\teof'
+        eof += '\tO\n'
+        lines += [eof]
 
     with open(span_file, 'w', encoding='utf8') as outfile:
         prev_label = 'O'
@@ -302,7 +306,7 @@ def si_predictions_to_spans(si_predictions_file, span_file):
             span_start = fields[2]
             span_end = fields[3]
             # fields[4] is the word itself
-            label = fields[5]
+            label = fields[label_idx]
 
             # Ending a span: I-O, B-O, I-B, B-B
             if prev_label != 'O' and \
@@ -329,6 +333,8 @@ if __name__ == '__main__':
     # get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER, "../data/train-task2-TC-with-spans.labels")
 
     # si_predictions_to_spans(SI_PREDICTIONS_FILE, SI_SPANS_FILE)
+    si_predictions_to_spans('../data/dev_predictions_sentiment_bio.tsv',
+                            SI_SPANS_FILE, label_idx=6)
 
     ###### BASELINE
     # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
@@ -340,11 +346,11 @@ if __name__ == '__main__':
     #               training=False, max_sent_len=40)
     ######
 
-    annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
-                  "../data/train-data-with-sents-improved.tsv",
-                  improved_sent_splitting=True)
+    # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
+    #               "../data/train-data-with-sents-improved.tsv",
+    #               improved_sent_splitting=True)
 
-    annotate_text(DEV_DATA_FOLDER, None,
-                  "../data/dev-improved.tsv",
-                  improved_sent_splitting=True,
-                  training=False)
+    # annotate_text(DEV_DATA_FOLDER, None,
+    #               "../data/dev-improved.tsv",
+    #               improved_sent_splitting=True,
+    #               training=False)
