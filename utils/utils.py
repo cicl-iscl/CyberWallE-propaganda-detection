@@ -333,8 +333,8 @@ if __name__ == '__main__':
     # get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER, "../data/train-task2-TC-with-spans.labels")
 
     # si_predictions_to_spans(SI_PREDICTIONS_FILE, SI_SPANS_FILE)
-    si_predictions_to_spans('../data/dev_predictions_sentiment_bio.tsv',
-                            SI_SPANS_FILE, label_idx=6)
+    si_predictions_to_spans('../data/dev_predictions_sentiment_arguing_bio.tsv',
+                            SI_SPANS_FILE, label_idx=7)
 
     ###### BASELINE
     # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
