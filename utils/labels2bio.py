@@ -12,44 +12,57 @@ def overlap(l1, l2):
     return False
 
 
-def labels2bio(span_file, bio_file, include_sent_number=True):
+def labels2bio(span_file, bio_file):
     with open(span_file, encoding='utf8') as infile:
         with open(bio_file, 'w', encoding='utf8') as outfile:
             prev_label = 'None'
             prev_article = '-1'
+            first_line = True
             for line in infile:
+
+                # Comments + header
+                if line.startswith('#'):
+                    outfile.write(line)
+                    continue
+                if first_line:
+                    first_line = False
+                    outfile.write(line)
+                    labels = line.strip().split('\t')
+                    try:
+                        doc_idx = labels.index('document_id')
+                    except ValueError:
+                        doc_idx = 0
+                    try:
+                        label_idx = labels.index('label')
+                    except ValueError:
+                        label_idx = len(labels) + 1
+                    continue
+
                 fields = line.strip().split('\t')
-                article = fields[0]
-                label = fields[5]
-                outfile.write(article)
-                outfile.write('\t')
-                if include_sent_number:
-                    outfile.write(fields[1])
-                    outfile.write('\t')
-                outfile.write(fields[2])
-                outfile.write('\t')
-                outfile.write(fields[3])
-                outfile.write('\t')
-                outfile.write(fields[4])
-                outfile.write('\t')
+                article = fields[doc_idx]
+                label = fields[label_idx]
+
                 if label == 'None':
-                    outfile.write('O')
+                    bio_label = 'O'
                 elif overlap(prev_label, label) and prev_article == article:
-                    outfile.write('I')
+                    bio_label = 'I'
                 else:
-                    outfile.write('B')
+                    bio_label = 'B'
                 prev_label = label
                 prev_article = article
+
+                fields[label_idx] = bio_label
+                outfile.write('\t'.join(fields))
                 outfile.write('\n')
 
 
 if __name__ == '__main__':
 
-    if len(sys.argv) != 3:
-        sys.stderr.write('Usage:', sys.argv[0] + ' INFILE OUTFILE\n')
-        sys.exit(1)
+    # if len(sys.argv) != 3:
+    #     sys.stderr.write('Usage:', sys.argv[0] + ' INFILE OUTFILE\n')
+    #     sys.exit(1)
 
-    labels2bio(sys.argv[1], sys.argv[2])
+    # labels2bio(sys.argv[1], sys.argv[2])
 
-    # labels2bio('../data/train-data-with-sents-baseline.tsv',
-    #            '../data/train-data-bio-baseline.tsv')
+    labels2bio('../data/train-data-sents-improved.tsv',
+               '../data/train-data-improved.tsv')

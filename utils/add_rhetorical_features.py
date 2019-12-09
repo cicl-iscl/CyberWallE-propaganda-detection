@@ -5,7 +5,12 @@ import sys
 
 
 path = '../data/arglex/'
-strategies = ['authority', 'doubt', 'emphasis', 'generalization', 'priority']
+strategies_5 = ['authority', 'doubt', 'emphasis', 'generalization', 'priority']
+strategies_full = ['assessments', 'authority', 'causation', 'conditionals',
+                   'contrast', 'difficulty', 'doubt', 'emphasis',
+                   'generalization', 'inconsistency', 'intensifiers',
+                   'inyourshoes', 'necessity', 'possibility', 'priority',
+                   'rhetoricalquestion', 'structure', 'wants']
 macros = ['modals', 'spoken', 'wordclasses', 'pronoun', 'intensifiers']
 # macro -> list of expansions
 expansions = dict()
@@ -13,7 +18,7 @@ expansions = dict()
 regexes = dict()
 
 
-def init(verbose=False):
+def init(strategies, verbose=False):
     for macro in macros:
         with open(path + macro + '.tff') as f:
             for line in f:
@@ -34,7 +39,8 @@ def init(verbose=False):
 
     if verbose:
         print('Macros and their expansions:')
-        [print(m, expansions[m]) for m in expansions]
+        for m in expansions:
+            print(m, expansions[m])
         print()
 
     for strategy in strategies:
@@ -56,7 +62,8 @@ def init(verbose=False):
 
     if verbose:
         print('Regexes for rhetorical strategies:')
-        [print(s, regexes[s]) for s in regexes]
+        for s in regexes:
+            print(s, regexes[s])
         print()
 
 
@@ -99,11 +106,34 @@ def parse_input_file(infile, outfile):
         rows = []
         tokens = []
         prev_article = ''
+        first_line = True
         for line in lines:
+
+            # Comments + header
+            if line.startswith('#'):
+                f_out.write(line)
+                continue
+            if first_line:
+                f_out.write('# rhetorical_features=ArguingLexicon\n')
+                first_line = False
+                labels = line.strip().split('\t')
+                try:
+                    doc_idx = labels.index('document_id')
+                except ValueError:
+                    doc_idx = 0
+                try:
+                    word_idx = labels.index('token')
+                except ValueError:
+                    word_idx = 4
+                labels.append('arglex')
+                f_out.write('\t'.join(labels) + '\n')
+                continue
+
             line = line[:-1]  # Remove \n
             fields = line.split('\t')
-            article = fields[0]
-            word = fields[4]
+            article = fields[doc_idx]
+            word = fields[word_idx]
+
             if article != prev_article:
                 indices = find_rhetorical_strategies(tokens)
                 for i, row in enumerate(rows):
@@ -127,15 +157,15 @@ if __name__ == "__main__":
     #     sys.stderr.write('Usage:', sys.argv[0] + 'FILENAME\n')
     #     sys.exit(1)
 
-    init()
-    # parse_demo_file(path + 'patterntest.txt')
+    # init(strategies_5)
+    # # parse_demo_file(path + 'patterntest.txt')
+    # parse_input_file('../data/train-data-bio-improved-sentiment.tsv',
+    #                  '../data/train-data-bio-improved-sentiment-arguing.tsv')
+    # parse_input_file('../data/dev-improved-sentiment.tsv',
+    #                  '../data/dev-improved-sentiment-arguing.tsv')
 
-    # toks = ['this', 'is', 'definitely', 'great', ';', 'it\'s', 'gonna', 'be', 'amazing']
-    # indices = find_rhetorical_strategies(toks)
-    # for i in indices:
-    #     print(i, toks[i])
-
-    parse_input_file('../data/train-data-bio-improved-sentiment.tsv',
-                     '../data/train-data-bio-improved-sentiment-arguing.tsv')
-    parse_input_file('../data/dev-improved-sentiment.tsv',
-                     '../data/dev-improved-sentiment-arguing.tsv')
+    init(strategies_full)
+    parse_input_file('../data/train-data-improved-sentiwordnet.tsv',
+                     '../data/train-data-improved-sentiwordnet-arguingfull.tsv')
+    parse_input_file('../data/dev-improved-sentiwordnet.tsv',
+                     '../data/dev-improved-sentiwordnet-arguingfull.tsv')

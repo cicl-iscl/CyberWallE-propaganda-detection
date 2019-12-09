@@ -217,6 +217,13 @@ def annotate_text(raw_data_folder, labels_data_folder, file_to_write,
         print("Finished {} files\n".format(file_counter))
 
         with open(file_to_write, 'w', encoding="utf-8") as f:
+            f.write('# max_sent_len=' + str(max_sent_len) +
+                    ', improved_sent_splitting=' +
+                    str(improved_sent_splitting) + '\n')
+            f.write('document_id\tsent_id\ttoken_start\ttoken_end\ttoken')
+            if training:
+                f.write('\tlabel')
+            f.write('\n')
             for row in output_table:
                 f.write('\t'.join(row) + "\n")
 
@@ -333,8 +340,8 @@ if __name__ == '__main__':
     # get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER, "../data/train-task2-TC-with-spans.labels")
 
     # si_predictions_to_spans(SI_PREDICTIONS_FILE, SI_SPANS_FILE)
-    si_predictions_to_spans('../data/dev_predictions_sentiment_arguing_bio.tsv',
-                            SI_SPANS_FILE, label_idx=7)
+    # si_predictions_to_spans('../data/dev_predictions_bio.tsv',
+    #                         SI_SPANS_FILE, label_idx=8)
 
     ###### BASELINE
     # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
@@ -346,11 +353,11 @@ if __name__ == '__main__':
     #               training=False, max_sent_len=40)
     ######
 
-    # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
-    #               "../data/train-data-with-sents-improved.tsv",
-    #               improved_sent_splitting=True)
+    annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
+                  "../data/train-data-sents-improved.tsv",
+                  improved_sent_splitting=True)
 
-    # annotate_text(DEV_DATA_FOLDER, None,
-    #               "../data/dev-improved.tsv",
-    #               improved_sent_splitting=True,
-    #               training=False)
+    annotate_text(DEV_DATA_FOLDER, None,
+                  "../data/dev-improved.tsv",
+                  improved_sent_splitting=True,
+                  training=False)
