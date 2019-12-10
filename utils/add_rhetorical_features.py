@@ -97,7 +97,7 @@ def find_rhetorical_strategies(token_list):
     return token_indices
 
 
-def parse_input_file(infile, outfile):
+def parse_input_file(infile, outfile, full=True):
     with open(infile, encoding='utf8') as f_in:
         lines = f_in.readlines()
         lines.append('eof\teof\teof\teof\teof\teof\n')
@@ -114,7 +114,12 @@ def parse_input_file(infile, outfile):
                 f_out.write(line)
                 continue
             if first_line:
-                f_out.write('# rhetorical_features=ArguingLexicon\n')
+                f_out.write('# rhetorical_features=ArguingLexicon_')
+                if full:
+                    f_out.write('full')
+                else:
+                    f_out.write('5')
+                f_out.write('\n')
                 first_line = False
                 labels = line.strip().split('\t')
                 try:
@@ -160,9 +165,10 @@ if __name__ == "__main__":
     # init(strategies_5)
     # # parse_demo_file(path + 'patterntest.txt')
     # parse_input_file('../data/train-data-bio-improved-sentiment.tsv',
-    #                  '../data/train-data-bio-improved-sentiment-arguing.tsv')
+    #                  '../data/train-data-bio-improved-sentiment-arguing.tsv',
+    #                  False)
     # parse_input_file('../data/dev-improved-sentiment.tsv',
-    #                  '../data/dev-improved-sentiment-arguing.tsv')
+    #                  '../data/dev-improved-sentiment-arguing.tsv', False)
 
     init(strategies_full)
     parse_input_file('../data/train-data-improved-sentiwordnet.tsv',

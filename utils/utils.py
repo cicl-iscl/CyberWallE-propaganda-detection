@@ -289,50 +289,83 @@ def punct_based_split_sent(tokenizer, sent, max_sent_len, punct):
 
 
 # This relies on predictions ordered by article ID
-def si_predictions_to_spans(si_predictions_file, span_file, label_idx=5):
-    # Make sure we get the last prediction at the end of the line-reading loop
-    # by adding a dummy line:
-    lines = []
-    with open(si_predictions_file, encoding='utf8') as infile:
-        lines = infile.readlines()
-        eof = 'eof'
-        for i in range(label_idx - 1):
-            eof += '\teof'
-        eof += '\tO\n'
-        lines += [eof]
-
+def si_predictions_to_spans(si_predictions_file, span_file):
     with open(span_file, 'w', encoding='utf8') as outfile:
-        prev_label = 'O'
-        prev_span_start = -1
-        prev_span_end = -1
-        prev_article = ''
-        for line in lines:
-            fields = line.strip().split('\t')
-            article = fields[0]
-            # fields[1] is the sentence number
-            span_start = fields[2]
-            span_end = fields[3]
-            # fields[4] is the word itself
-            label = fields[label_idx]
+        with open(si_predictions_file, encoding='utf8') as infile:
+            prev_label = 'O'
+            prev_span_start = '-1'
+            prev_span_end = '-1'
+            prev_article = ''
 
-            # Ending a span: I-O, B-O, I-B, B-B
-            if prev_label != 'O' and \
-               (label != 'I' or prev_article != article):
-                outfile.write(prev_article)
-                outfile.write('\t')
-                outfile.write(prev_span_start)
-                outfile.write('\t')
-                outfile.write(prev_span_end)
-                outfile.write('\n')
+            first_line = True
+            for line in infile:
 
-            # Starting a new span: O-B, O-I, I-B, B-B, new article
-            if label == 'B' or (label == 'I' and prev_label == 'O') \
-                    or prev_article != article:
-                prev_span_start = span_start
+                # Comments + header
+                if line.startswith('#'):
+                    continue
+                if first_line:
+                    first_line = False
+                    labels = line.strip().split('\t')
+                    try:
+                        article_idx = labels.index('document_id')
+                    except ValueError:
+                        article_idx = 0
+                    try:
+                        span_start_idx = labels.index('token_start')
+                    except ValueError:
+                        span_start_idx = 2
+                    try:
+                        span_end_idx = labels.index('token_end')
+                    except ValueError:
+                        span_end_idx = 3
+                    try:
+                        label_idx = labels.index('label')
+                    except ValueError:
+                        label_idx = -1
+                    continue
 
-            prev_article = article
-            prev_label = label
-            prev_span_end = span_end
+                fields = line.strip().split('\t')
+                article = fields[article_idx]
+                span_start = fields[span_start_idx]
+                span_end = fields[span_end_idx]
+                label = fields[label_idx]
+
+                prev_span_start = write_prediction(outfile, article, label,
+                                                   span_start, span_end,
+                                                   prev_article, prev_label,
+                                                   prev_span_start,
+                                                   prev_span_end)
+                prev_article = article
+                prev_label = label
+                prev_span_end = span_end
+
+        # Make sure we get the last prediction
+        write_prediction(outfile,
+                         article, label, span_start, span_end,
+                         prev_article, prev_label, prev_span_start,
+                         prev_span_end)
+
+
+# Helper method for si_predictions_to_spans
+def write_prediction(outfile,
+                     article, label, span_start, span_end,
+                     prev_article, prev_label, prev_span_start, prev_span_end):
+    # Ending a span: I-O, B-O, I-B, B-B, new article
+    if prev_label != 'O' and \
+       (label != 'I' or prev_article != article):
+        outfile.write(prev_article)
+        outfile.write('\t')
+        outfile.write(prev_span_start)
+        outfile.write('\t')
+        outfile.write(prev_span_end)
+        outfile.write('\n')
+
+    # Starting a new span: O-B, O-I, I-B, B-B, new article
+    if label == 'B' or (label == 'I' and prev_label == 'O') \
+            or prev_article != article:
+        # Update the start of the current label span
+        return span_start
+    return prev_span_start
 
 
 if __name__ == '__main__':
@@ -340,8 +373,7 @@ if __name__ == '__main__':
     # get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER, "../data/train-task2-TC-with-spans.labels")
 
     # si_predictions_to_spans(SI_PREDICTIONS_FILE, SI_SPANS_FILE)
-    # si_predictions_to_spans('../data/dev_predictions_bio.tsv',
-    #                         SI_SPANS_FILE, label_idx=8)
+    si_predictions_to_spans('../data/dev_predictions_bio.tsv', SI_SPANS_FILE)
 
     ###### BASELINE
     # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
@@ -353,11 +385,11 @@ if __name__ == '__main__':
     #               training=False, max_sent_len=40)
     ######
 
-    annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
-                  "../data/train-data-sents-improved.tsv",
-                  improved_sent_splitting=True)
+    # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
+    #               "../data/train-data-sents-improved.tsv",
+    #               improved_sent_splitting=True)
 
-    annotate_text(DEV_DATA_FOLDER, None,
-                  "../data/dev-improved.tsv",
-                  improved_sent_splitting=True,
-                  training=False)
+    # annotate_text(DEV_DATA_FOLDER, None,
+    #               "../data/dev-improved.tsv",
+    #               improved_sent_splitting=True,
+    #               training=False)

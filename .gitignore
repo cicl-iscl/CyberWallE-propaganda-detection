@@ -1,2 +1,4 @@
 .idea/
 */.ipynb_checkpoints
+*predictions*.txt
+*predictions*.tsv
