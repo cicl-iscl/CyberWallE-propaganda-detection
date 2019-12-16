@@ -1,5 +1,4 @@
-from baseline_lstm import run
-from google.colab import drive
+from model import run
 
 
 class Config:
@@ -49,9 +48,8 @@ class Config:
                'loss: ' + config.LOSS + '\n'
 
 
-drive.mount('/content/gdrive')
 config = Config()
-file_prefix = '/content/gdrive/My Drive/'
+file_prefix = '/content/gdrive/My Drive/semeval-predictions/'
 data, model, history = run(config, file_prefix=file_prefix)
 config.DROPOUT = 0.5
 config.EPOCHS = 14
