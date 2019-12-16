@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 from itertools import takewhile
 import urllib.request
-import time
 from keras.layers import Bidirectional, CuDNNLSTM, Dense, Dropout, \
     TimeDistributed
 from keras.models import Sequential
@@ -11,23 +10,21 @@ from keras.models import Sequential
 # Processing the input #
 ########################
 
-# Version for files that are not specified via a URL:
-# def get_comments(filename):
-#   with open(filename, 'r', encoding='utf8') as f:
-#     commentiter = takewhile(lambda s: s.startswith('#'), f)
-#     comments = list(commentiter)
-#   return comments
-
 
 # Helper method for prepare_data
-def get_comments(filename):
-    comments = []
-    with urllib.request.urlopen(filename) as f:
-        for line in f:
-            if line.startswith(b'#'):
-                comments.append(line)
-            else:
-                break
+def get_comments(filename, url=True):
+    if url:
+        comments = []
+        with urllib.request.urlopen(filename) as f:
+            for line in f:
+                if line.startswith(b'#'):
+                    comments.append(line.decode("utf-8"))
+                else:
+                    break
+        return comments
+    with open(filename, 'r', encoding='utf8') as f:
+        commentiter = takewhile(lambda s: s.startswith('#'), f)
+        comments = list(commentiter)
     return comments
 
 
@@ -96,7 +93,7 @@ def prepare_data(config, word2embedding, training):
         infile = config.TRAIN_URL
     else:
         infile = config.DEV_URL
-    comments = get_comments(infile)
+    comments = get_comments(infile, config.ONLINE_SOURCES)
     df = pd.read_csv(infile, sep='\t', skiprows=len(comments), quoting=3)
 
     std_cols = ['document_id', 'sent_id', 'token_start',
@@ -256,20 +253,18 @@ def update_prediction(article, label, span_start, span_end, prev_article,
 
 
 def predict(config, model, history, dev_df, dev_raw, dev_x, comments,
-            file_prefix):
+            file_prefix, file_stem, file_suffix):
     y_hat = get_bio_predictions(model, dev_x, dev_raw, config.N_CLASSES)
     result_df = pd.concat([dev_df, pd.DataFrame(y_hat, columns=['label'])],
                           axis=1, sort=False)
     spans = si_predictions_to_spans(result_df)
 
-    now = time.strftime("%Y%m%d-%H%M%S", time.localtime())
-    outfile = file_prefix + 'spans_' + now + '.txt'
-    logfile = file_prefix + 'log_' + now + '.txt'
+    outfile = file_prefix + 'spans_' + file_stem + '_' + file_suffix + '.txt'
+    logfile = file_prefix + 'log_' + file_stem + '_' + file_suffix + '.txt'
 
     with open(logfile, mode='w') as f:
         f.write('DATA PREPROCESSING\n\n')
         for comment in comments:
-            comment = comment.decode("utf-8")
             comment = comment.replace('#', '')
             fields = comment.split(',')
             for field in fields:
@@ -299,10 +294,8 @@ def predict(config, model, history, dev_df, dev_raw, dev_x, comments,
 ###########################
 
 
-def run(config, verbose=True,
-        data=None, word2embedding=None,
-        model=None, history=None,
-        file_prefix=''):
+def run(config, file_stem, file_suffix, verbose=True,
+        data=None, word2embedding=None, file_prefix=''):
     if verbose:
         print('Running with config:')
         print(config.pretty_str())
@@ -310,16 +303,15 @@ def run(config, verbose=True,
         if verbose:
             print('Encoding the data')
         data = get_data(config, word2embedding)
-    if not model:
-        if verbose:
-            print('Building the model')
-        model, history = create_and_fit_bilstm(config, data.train_x,
-                                               data.train_y,
-                                               data.sample_weight)
+    if verbose:
+        print('Building the model')
+    model, history = create_and_fit_bilstm(config, data.train_x,
+                                           data.train_y,
+                                           data.sample_weight)
     if verbose:
         print('Predicting the test data spans')
     predict(config, model, history, data.dev_df, data.dev_raw,
-            data.dev_x, data.comments, file_prefix)
+            data.dev_x, data.comments, file_prefix, file_stem, file_suffix)
     if verbose:
         print('Done!\n\n')
-    return data, model, history
+    return data

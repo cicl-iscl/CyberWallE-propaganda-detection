@@ -1,4 +1,5 @@
 from model import run
+import time
 
 
 class Config:
@@ -12,6 +13,7 @@ class Config:
         self.MAX_SEQ_LEN = 35
         self.EMBED_DIM = 100
         self.N_CLASSES = 2
+        self.ONLINE_SOURCES = True
         self.TRAIN_URL = 'https://raw.githubusercontent.com/cicl-iscl/CyberWallE/master/data/train-data-improved-sentiwordnet-arguingfull.tsv?token=AD7GEDLFTVHGUIDOG4EDKYK57FJJY'
         self.DEV_URL = 'https://raw.githubusercontent.com/cicl-iscl/CyberWallE/master/data/dev-improved-sentiwordnet-arguingfull.tsv?token=AD7GEDKHMNRQLNNRBNDYWJK57FJJ6'
         self.EMBEDDING_PATH = 'gdrive/My Drive/colab_projects/data/glove.6B.100d.txt'
@@ -38,19 +40,28 @@ class Config:
                'number of labels: ' + str(config.N_CLASSES) + '\n' + \
                'batch size: ' + str(self.BATCH_SIZE) + '\n' + \
                'epochs: ' + str(self.EPOCHS) + '\n' + \
-               'O weight: ' + str(config.O_WEIGHT) + \
-               ', I weight:' + str(config.I_WEIGHT) + \
-               ', B weight: ' + str(config.B_WEIGHT) + '\n' + \
-               'hidden units: ' + str(config.LSTM_UNITS) + '\n' + \
-               'dropout rate: ' + str(config.DROPOUT) + '\n' + \
-               'optimizer: ' + config.OPTIMIZER + '\n' + \
-               'metric: ' + config.METRIC + '\n' + \
-               'loss: ' + config.LOSS + '\n'
+               'O weight: ' + str(self.O_WEIGHT) + \
+               ', I weight:' + str(self.I_WEIGHT) + \
+               ', B weight: ' + str(self.B_WEIGHT) + '\n' + \
+               'hidden units: ' + str(self.LSTM_UNITS) + '\n' + \
+               'dropout rate: ' + str(self.DROPOUT) + '\n' + \
+               'optimizer: ' + self.OPTIMIZER + '\n' + \
+               'metric: ' + self.METRIC + '\n' + \
+               'loss: ' + self.LOSS + '\n'
 
 
-config = Config()
+def run_config(config, file_prefix, data=None, repetitions=5):
+    now = time.strftime("%Y%m%d-%H%M%S", time.localtime())
+    for i in range(repetitions):
+        data = run(config, data=data,
+                   file_prefix=file_prefix, file_stem=now, file_suffix=str(i))
+    # Return data in case the next config only changes model features
+    return data
+
+
 file_prefix = '/content/gdrive/My Drive/semeval-predictions/'
-data, model, history = run(config, file_prefix=file_prefix)
-config.DROPOUT = 0.5
-config.EPOCHS = 14
-run(config, data=data, file_prefix=file_prefix)
+data = None
+for epochs in [10, 15]:
+    for dropout in [0.2, 0.4, 0.6, 0.8]:
+        config = Config({'EPOCHS': epochs, 'DROPOUT': dropout})
+        data = run_config(config, file_prefix, data)
