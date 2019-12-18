@@ -8,7 +8,7 @@ path = '../data/arglex/'
 strategies_5 = ['authority', 'doubt', 'emphasis', 'generalization', 'priority']
 strategies_full = ['assessments', 'authority', 'causation', 'conditionals',
                    'contrast', 'difficulty', 'doubt', 'emphasis',
-                   'generalization', 'inconsistency', 'intensifiers',
+                   'generalization', 'inconsistency',
                    'inyourshoes', 'necessity', 'possibility', 'priority',
                    'rhetoricalquestion', 'structure', 'wants']
 macros = ['modals', 'spoken', 'wordclasses', 'pronoun', 'intensifiers']
@@ -81,10 +81,14 @@ def parse_demo_file(filename):
             print()
 
 
-def find_rhetorical_strategies(token_list):
+def find_rhetorical_strategies(token_list, strategy):
     sentence = ' '.join(token_list)
     token_indices = set()
-    for strategy in regexes:
+    if strategy is 'any':
+        strats = [s for s in regexes]
+    else:
+        strats = [strategy]
+    for strategy in strats:
         for regex in regexes[strategy]:
             for match in re.finditer(regex, sentence):
                 # print(strategy.upper(), '--', match.group(),
@@ -97,10 +101,24 @@ def find_rhetorical_strategies(token_list):
     return token_indices
 
 
-def parse_input_file(infile, outfile, full=True):
+def parse_input_file(infile, outfile, full=True, indiv_cols=False):
+    """
+
+    full : if True, use all strategies, if false, use the 5 most important
+           strategies. Used for generating the preprocessing description.
+           Should match the initialization
+    indiv_cols: if True, each rhetorical strategy is represented by its own
+                column. If False, matches for any strategy are represented
+                in a single joint feature column.
+    """
     with open(infile, encoding='utf8') as f_in:
         lines = f_in.readlines()
         lines.append('eof\teof\teof\teof\teof\teof\n')
+
+    if indiv_cols:
+        strategies = [s for s in regexes]
+    else:
+        strategies = ['any']
 
     with open(outfile, 'w', encoding='utf8') as f_out:
         rows = []
@@ -114,12 +132,16 @@ def parse_input_file(infile, outfile, full=True):
                 f_out.write(line)
                 continue
             if first_line:
-                f_out.write('# rhetorical_features=ArguingLexicon_')
+                f_out.write('# rhetorical_features: ArguingLexicon (')
                 if full:
-                    f_out.write('full')
+                    f_out.write('full, ')
                 else:
-                    f_out.write('5')
-                f_out.write('\n')
+                    f_out.write('5 main strategies, ')
+                if indiv_cols:
+                    f_out.write('individual feature columns')
+                else:
+                    f_out.write('joint feature column')
+                f_out.write(')\n')
                 first_line = False
                 labels = line.strip().split('\t')
                 try:
@@ -130,7 +152,8 @@ def parse_input_file(infile, outfile, full=True):
                     word_idx = labels.index('token')
                 except ValueError:
                     word_idx = 4
-                labels.append('arglex')
+                for strategy in strategies:
+                    labels.append('arglex_' + strategy)
                 f_out.write('\t'.join(labels) + '\n')
                 continue
 
@@ -140,15 +163,17 @@ def parse_input_file(infile, outfile, full=True):
             word = fields[word_idx]
 
             if article != prev_article:
-                indices = find_rhetorical_strategies(tokens)
-                for i, row in enumerate(rows):
-                    f_out.write(row)
-                    f_out.write('\t')
-                    if i in indices:
-                        f_out.write('1')
-                    else:
-                        f_out.write('0')
-                    f_out.write('\n')
+                for strategy in strategies:
+                    indices = find_rhetorical_strategies(tokens, strategy)
+                    rows_new = []
+                    for i, row in enumerate(rows):
+                        if i in indices:
+                            rows_new.append(row + '\t1')
+                        else:
+                            rows_new.append(row + '\t0')
+                    rows = rows_new
+                for row in rows:
+                    f_out.write(row + '\n')
                 tokens = []
                 rows = []
             tokens.append(word)
@@ -172,6 +197,6 @@ if __name__ == "__main__":
 
     init(strategies_full)
     parse_input_file('../data/train-data-improved-sentiwordnet.tsv',
-                     '../data/train-data-improved-sentiwordnet-arguingfull.tsv')
+                     '../data/train-data-improved-sentiwordnet-arguingfullindiv.tsv')
     parse_input_file('../data/dev-improved-sentiwordnet.tsv',
-                     '../data/dev-improved-sentiwordnet-arguingfull.tsv')
+                     '../data/dev-improved-sentiwordnet-arguingfullindiv.tsv')

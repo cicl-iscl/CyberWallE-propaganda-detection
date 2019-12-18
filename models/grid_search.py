@@ -50,10 +50,12 @@ class Config:
                'loss: ' + self.LOSS + '\n'
 
 
-def run_config(config, file_prefix, data=None, repetitions=5):
+def run_config(config, file_prefix, data=None, repetitions=5, verbose=True):
     now = time.strftime("%Y%m%d-%H%M%S", time.localtime())
     for i in range(repetitions):
-        data = run(config, data=data,
+        if verbose:
+            print("Iteration " + str(i + 1) + " of " + str(repetitions))
+        data = run(config, data=data, verbose=verbose,
                    file_prefix=file_prefix, file_stem=now, file_suffix=str(i))
     # Return data in case the next config only changes model features
     return data
@@ -61,7 +63,7 @@ def run_config(config, file_prefix, data=None, repetitions=5):
 
 file_prefix = '/content/gdrive/My Drive/semeval-predictions/'
 data = None
-for epochs in [10, 15]:
-    for dropout in [0.2, 0.4, 0.6, 0.8]:
+for epochs in [5]:
+    for dropout in [0.2, 0.4]:
         config = Config({'EPOCHS': epochs, 'DROPOUT': dropout})
         data = run_config(config, file_prefix, data)
