@@ -10,6 +10,15 @@ SI_PREDICTIONS_FILE = '../data/dev_predictions_bio.tsv'
 SI_SPANS_FILE = '../data/dev_predictions_spans.txt'
 
 
+def get_si_dev_gs(tc_file='../datasets/dev-task-TC-template.out',
+                  outfile='../data/dev-gs.txt'):
+    with open(tc_file, encoding='utf8') as f_in:
+        with open(outfile, 'w', encoding='utf8') as f_out:
+            for line in f_in:
+                fields = line.split('\t')
+                f_out.write(fields[0] + '\t' + fields[2] + '\t' + fields[3])
+
+
 def get_spans_from_text(labels_file, raw_data_folder, file_to_write):
     """
     Subtract spans from raw texts and create a new file
@@ -50,6 +59,10 @@ def get_spans_from_text(labels_file, raw_data_folder, file_to_write):
 def annotate_text(raw_data_folder, labels_data_folder, file_to_write,
                   max_sent_len=35, improved_sent_splitting=True,
                   training=True):
+    # max_sent_len = -1 ==> no sentence splitting
+    if max_sent_len == -1:
+        # the corresponding if-block can handle this
+        improved_sent_splitting = True
     nlp = English()
     tokenizer = nlp.Defaults.create_tokenizer(nlp)
     if improved_sent_splitting:
@@ -120,7 +133,7 @@ def annotate_text(raw_data_folder, labels_data_folder, file_to_write,
                     for sent in sentences_raw:
                         sent = sent.strip()
                         tokens = tokenizer(sent)
-                        if len(tokens) <= max_sent_len:
+                        if len(tokens) <= max_sent_len or max_sent_len == -1:
                             # No need to split the sentence!
                             if len(sent) == 0:
                                 # Can happen when paragraphs are separated by
@@ -372,8 +385,6 @@ if __name__ == '__main__':
     LABELS_DATA_FOLDER = "../datasets/train-labels-task2-technique-classification/"
     # get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER, "../data/train-task2-TC-with-spans.labels")
 
-    # si_predictions_to_spans(SI_PREDICTIONS_FILE, SI_SPANS_FILE)
-    si_predictions_to_spans('../data/dev_predictions_bio.tsv', SI_SPANS_FILE)
 
     ###### BASELINE
     # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
@@ -393,3 +404,14 @@ if __name__ == '__main__':
     #               "../data/dev-improved.tsv",
     #               improved_sent_splitting=True,
     #               training=False)
+
+    # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
+    #               "../data/train-data-fullsents.tsv",
+    #               max_sent_len=-1)
+
+    # annotate_text(DEV_DATA_FOLDER, None,
+    #               "../data/dev-fullsents.tsv",
+    #               max_sent_len=-1,
+    #               training=False)
+
+    get_si_dev_gs()

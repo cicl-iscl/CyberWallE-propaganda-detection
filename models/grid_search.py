@@ -1,4 +1,5 @@
-from model import run
+from model import run, si_predictions_to_spans
+from collections import Counter
 import time
 
 
@@ -17,6 +18,7 @@ class Config:
         self.TRAIN_URL = 'https://raw.githubusercontent.com/cicl-iscl/CyberWallE/master/data/train-data-improved-sentiwordnet-arguingfull.tsv?token=AD7GEDLFTVHGUIDOG4EDKYK57FJJY'
         self.DEV_URL = 'https://raw.githubusercontent.com/cicl-iscl/CyberWallE/master/data/dev-improved-sentiwordnet-arguingfull.tsv?token=AD7GEDKHMNRQLNNRBNDYWJK57FJJ6'
         self.EMBEDDING_PATH = 'gdrive/My Drive/colab_projects/data/glove.6B.100d.txt'
+        self.UNCASED = True  # If true, words are turned into lower case.
 
         # Building the model:
         self.BATCH_SIZE = 128
@@ -50,13 +52,53 @@ class Config:
                'loss: ' + self.LOSS + '\n'
 
 
-def run_config(config, file_prefix, data=None, repetitions=5, verbose=True):
+def get_majority_vote(votes):
+    votes = dict(Counter(votes))
+    max_count = -1
+    max_entry = []
+    for key in votes:
+        count = votes[key]
+        if count > max_count:
+            max_count = count
+            max_entry = [key]
+        elif count == max_count:
+            max_entry.append(key)
+    if len(max_entry) == 1:
+        return max_entry[0]
+    if 'I' in max_entry:
+        return 'I'
+    if 'B' in max_entry:
+        return 'B'
+    return max_entry[0]
+
+
+def run_config(config, file_prefix, data=None, repetitions=5,
+               majority_voting=False, verbose=True):
     now = time.strftime("%Y%m%d-%H%M%S", time.localtime())
+    predictions = None
+    label_cols = []
     for i in range(repetitions):
         if verbose:
             print("Iteration " + str(i + 1) + " of " + str(repetitions))
-        data = run(config, data=data, verbose=verbose,
-                   file_prefix=file_prefix, file_stem=now, file_suffix=str(i))
+        data, labels = run(config, data=data, verbose=verbose,
+                           file_prefix=file_prefix, file_stem=now,
+                           file_suffix=str(i))
+        if majority_voting:
+            if not predictions:
+                predictions = labels
+                predictions.rename({'label': 'label_0'})
+            else:
+                predictions.insert(loc=len(predictions.columns),
+                                   column='label_' + str(i),
+                                   value=labels.label)
+            label_cols.append('label_' + str(i))
+    if majority_voting:
+        predictions['label'] = ''
+        for row in predictions.itertuples():
+            row.label = get_majority_vote([getattr(row, l)
+                                           for l in label_cols])
+        si_predictions_to_spans(predictions)
+
     # Return data in case the next config only changes model features
     return data
 

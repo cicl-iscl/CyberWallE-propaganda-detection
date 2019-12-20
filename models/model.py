@@ -48,7 +48,8 @@ def get_features(input_df, feature_cols):
     return x
 
 
-def encode_x(x, word2embedding, feature_header, max_seq_len, embed_dim):
+def encode_x(x, word2embedding, feature_header, max_seq_len,
+             embed_dim, uncased):
     """Encode the input data.
 
     Arguments:
@@ -64,6 +65,8 @@ def encode_x(x, word2embedding, feature_header, max_seq_len, embed_dim):
         sent_idx = row.Index - 1
         for tok_idx in range(row.n_toks):
             word = row.token[tok_idx]
+            if uncased:
+                word = word.lower()
             embedding_matrix[sent_idx][tok_idx][:embed_dim] = \
                 word2embedding.get(word, np.random.randn(embed_dim))
             for i, feature in enumerate(feature_header):
@@ -105,7 +108,7 @@ def prepare_data(config, word2embedding, training):
 
     x_raw = get_features(df, feature_cols)
     x_enc = encode_x(x_raw, word2embedding, feature_cols,
-                     config.MAX_SEQ_LEN, config.EMBED_DIM)
+                     config.MAX_SEQ_LEN, config.EMBED_DIM, config.UNCASED)
 
     y = None
     sample_weight = None
@@ -248,18 +251,23 @@ def update_prediction(article, label, span_start, span_end, prev_article,
             or prev_article != article:
         # Update the start of the current label span
         cur_span_start = span_start
-
     return span, cur_span_start
 
 
+def print_spans(spans, file_prefix, file_stem, file_suffix):
+    outfile = file_prefix + 'spans_' + file_stem + '_' + file_suffix + '.txt'
+    with open(outfile, mode='w') as f:
+        for span in spans:
+            f.write(str(span[0]) + '\t' + str(span[1]) + '\t' +
+                    str(span[2]) + '\n')
+
+
 def predict(config, model, history, dev_df, dev_raw, dev_x, comments,
-            file_prefix, file_stem, file_suffix):
+            file_prefix, file_stem, file_suffix, predict_spans=True):
     y_hat = get_bio_predictions(model, dev_x, dev_raw, config.N_CLASSES)
     result_df = pd.concat([dev_df, pd.DataFrame(y_hat, columns=['label'])],
                           axis=1, sort=False)
-    spans = si_predictions_to_spans(result_df)
 
-    outfile = file_prefix + 'spans_' + file_stem + '_' + file_suffix + '.txt'
     logfile = file_prefix + 'log_' + file_stem + '_' + file_suffix + '.txt'
 
     with open(logfile, mode='w') as f:
@@ -283,10 +291,11 @@ def predict(config, model, history, dev_df, dev_raw, dev_x, comments,
         f.write('\n\nMODEL SUMMARY\n\n')
         model.summary(print_fn=lambda x: f.write(x + '\n'))
 
-    with open(outfile, mode='w') as f:
-        for span in spans:
-            f.write(str(span[0]) + '\t' + str(span[1]) + '\t' +
-                    str(span[2]) + '\n')
+    if predict_spans:
+        spans = si_predictions_to_spans(result_df)
+        print_spans(spans, file_prefix, file_stem, file_suffix)
+
+    return result_df
 
 
 ###########################
@@ -294,7 +303,7 @@ def predict(config, model, history, dev_df, dev_raw, dev_x, comments,
 ###########################
 
 
-def run(config, file_stem, file_suffix, verbose=True,
+def run(config, file_stem, file_suffix, verbose=True, predict_spans=True,
         data=None, word2embedding=None, file_prefix=''):
     if verbose:
         print('Running with config:')
@@ -310,8 +319,10 @@ def run(config, file_stem, file_suffix, verbose=True,
                                            data.sample_weight)
     if verbose:
         print('Predicting the test data spans')
-    predict(config, model, history, data.dev_df, data.dev_raw,
-            data.dev_x, data.comments, file_prefix, file_stem, file_suffix)
+    labels = predict(config, model, history, data.dev_df, data.dev_raw,
+                     data.dev_x, data.comments, file_prefix, file_stem,
+                     file_suffix, predict_spans)
     if verbose:
         print('Done!\n\n')
-    return data
+
+    return data, labels
