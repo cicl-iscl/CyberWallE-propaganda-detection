@@ -64,7 +64,7 @@ def encode_x(x, word2embedding, feature_header, max_seq_len,
     for row in x.itertuples():
         sent_idx = row.Index - 1
         for tok_idx in range(row.n_toks):
-            word = row.token[tok_idx]
+            word = str(row.token[tok_idx])
             if uncased:
                 word = word.lower()
             embedding_matrix[sent_idx][tok_idx][:embed_dim] = \

@@ -105,7 +105,13 @@ def run_config(config, file_prefix, data=None, repetitions=5,
 
 file_prefix = '/content/gdrive/My Drive/semeval-predictions/'
 data = None
-for epochs in [5]:
-    for dropout in [0.2, 0.4]:
-        config = Config({'EPOCHS': epochs, 'DROPOUT': dropout})
-        data = run_config(config, file_prefix, data)
+
+# for epochs in [5]:
+#     for dropout in [0.2, 0.4]:
+#         config = Config({'EPOCHS': epochs, 'DROPOUT': dropout})
+#         data = run_config(config, file_prefix, data)
+
+# config = Config()
+config = Config({'TRAIN_URL': 'https://raw.githubusercontent.com/cicl-iscl/CyberWallE/master/data/train-data-improved-sentiwordnet-arguingfull-pos.tsv?token=AD7GEDNDI6GENLIHFDOMX4K6ASWAU',
+                 'DEV_URL': 'https://raw.githubusercontent.com/cicl-iscl/CyberWallE/master/data/dev-improved-sentiwordnet-arguingfull-pos.tsv?token=AD7GEDJPX4IDUX7OOWTHD7S6ASWBQ'})
+data = run_config(config, file_prefix, data, repetitions=1)
