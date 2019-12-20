@@ -12,11 +12,42 @@ SI_SPANS_FILE = '../data/dev_predictions_spans.txt'
 
 def get_si_dev_gs(tc_file='../datasets/dev-task-TC-template.out',
                   outfile='../data/dev-gs.txt'):
+    articles2spans = {}
     with open(tc_file, encoding='utf8') as f_in:
-        with open(outfile, 'w', encoding='utf8') as f_out:
-            for line in f_in:
-                fields = line.split('\t')
-                f_out.write(fields[0] + '\t' + fields[2] + '\t' + fields[3])
+        for line in f_in:
+            fields = line[:-1].split('\t')
+            article = fields[0]
+            span_start = int(fields[2])
+            span_end = int(fields[3])
+            try:
+                spans = articles2spans[article]
+            except KeyError:
+                spans = []
+            spans.append((span_start, span_end))
+            articles2spans[article] = spans
+
+    rows = []
+    for article in articles2spans:
+        spans = articles2spans[article]
+        spans.sort(key=lambda tup: tup[0])
+        rows_in_article = []
+        for span in spans:
+            span = (article, span[0], span[1])
+            if not rows_in_article:
+                rows_in_article = [span]
+                continue
+            prev_span = rows_in_article[-1]
+            if span[1] <= prev_span[2]:
+                if span[2] <= prev_span[2]:
+                    continue
+                rows_in_article[-1] = (article, prev_span[1], span[2])
+            else:
+                rows_in_article.append(span)
+        rows += rows_in_article
+
+    with open(outfile, 'w', encoding='utf8') as f_out:
+        for row in rows:
+            f_out.write(row[0] + '\t' + str(row[1]) + '\t' + str(row[2]) + '\n')
 
 
 def get_spans_from_text(labels_file, raw_data_folder, file_to_write):

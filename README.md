@@ -1,11 +1,9 @@
 # CyberWallE: SemEval 2020 Task 11: Propaganda Detection
 
-- [ ] Exploratory data analysis
-  - [X] Label distribution
-  - [X] Span lengths
-- [ ] Read up on oversampling/data-balancing techniques
-- [ ] Read up on BERT / How to use it?
-- [ ] Look for feature-engineering data sources
-  - [ ] Swearword lists (or similar) -> 1. Loaded language, 2. Name calling or labeling
-  - [ ] Affect/sentiment word lists -> 1. Loaded language
-  
+- `baselines` (from the organizers): baseline code + predictions
+- `data`: training/dev set input files with features, lexica for semantic + rhetorical structures
+- `datasets` (from the organizers): articles, training labels
+- `eda`: analyzing label distributions, sentence lengths and other features of the given data
+- `models`: our models
+- `tools` (from the organizers): scripts for evaluating the data
+- `utils`: data preprocessing and evaluation
