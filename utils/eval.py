@@ -1,3 +1,5 @@
+# Adapted from task-SI_scorer.py (Giovanni Da San Martino 2019, GPL license)
+
 import importlib
 import os
 import sys
@@ -11,23 +13,51 @@ scorer = importlib.import_module('tools.task-SI_scorer')
 DEV_GS = '../data/dev-gs.txt'
 
 
+def compute_score_pr(submission_annotations, gold_annotations):
+    prec_denominator = sum(
+        [len(annotations) for annotations in submission_annotations.values()])
+    rec_denominator = sum(
+        [len(annotations) for annotations in gold_annotations.values()])
+    cumulative_Spr_prec, cumulative_Spr_rec = (0, 0)
+
+    for article_id in submission_annotations.keys():
+        gold_data = gold_annotations[article_id]
+
+        for j, sd in enumerate(submission_annotations[article_id]):
+            sd_annotation_length = len(sd[1])
+            for i, gd in enumerate(gold_data):
+                intersection = len(sd[1].intersection(gd[1]))
+                Spr_prec = intersection / sd_annotation_length
+                cumulative_Spr_prec += Spr_prec
+
+                gd_annotation_length = len(gd[1])
+                Spr_rec = intersection / gd_annotation_length
+                cumulative_Spr_rec += Spr_rec
+
+    p, r, f1 = scorer.compute_prec_rec_f1(cumulative_Spr_prec,
+                                          prec_denominator,
+                                          cumulative_Spr_rec,
+                                          rec_denominator)
+
+    return f1, p, r
+
+
 def eval(pred_file, gs_file=DEV_GS):
     techniques_names = ["propaganda"]
     submission_annotations = scorer.load_annotation_list_from_file(
         pred_file, techniques_names)
+
+    # We don't have gold standard labels for the first article (730081389)
+    submission_annotations.pop('730081389', None)
+
     gold_annotations = scorer.load_annotation_list_from_file(gs_file,
                                                              techniques_names)
-    scorer.check_data_file_lists(submission_annotations, gold_annotations)
     if not scorer.check_annotation_spans(submission_annotations, False):
         print("Error in submission file")
         sys.exit()
     scorer.check_annotation_spans(gold_annotations, True)
-    f1 = scorer.compute_score_pr(submission_annotations,
-                                 gold_annotations, techniques_names,
-                                 prop_vs_non_propaganda=True,
-                                 per_article_evaluation=False,
-                                 output_for_script=False)
-    print(f1)
+    p, r, f1 = compute_score_pr(submission_annotations, gold_annotations)
+    print(p, r, f1)
 
 
 if len(sys.argv) != 2:

@@ -27,7 +27,8 @@ def get_si_dev_gs(tc_file='../datasets/dev-task-TC-template.out',
             articles2spans[article] = spans
 
     rows = []
-    for article in articles2spans:
+    articles = sorted([article for article in articles2spans])
+    for article in articles:
         spans = articles2spans[article]
         spans.sort(key=lambda tup: tup[0])
         rows_in_article = []
