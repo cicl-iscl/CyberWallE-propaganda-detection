@@ -176,7 +176,7 @@ def get_bilstm(input_shape, config):
 def create_and_fit_bilstm(config, train_x, train_y, sample_weight):
     model = get_bilstm(train_x.shape[1:], config)
     history = model.fit(train_x, train_y, epochs=config.EPOCHS,
-                        batch_size=config.BATCH_SIZE, validation_split=0.1,
+                        batch_size=config.BATCH_SIZE,
                         sample_weight=sample_weight, verbose=1,)
     return model, history
 
@@ -280,12 +280,8 @@ def predict(config, model, history, dev_df, dev_raw, dev_x, comments,
         f.write('\n\nCONFIG\n\n')
         f.write(config.pretty_str())
         f.write('\n\nMODEL HISTORY\n\n')
-        f.write('Validation loss ' + config.LOSS + '\n')
-        f.write(str(history.history['val_loss']) + '\n')
         f.write('Loss ' + config.LOSS + '\n')
         f.write(str(history.history['loss']) + '\n')
-        f.write('Validation ' + config.METRIC + '\n')
-        f.write(str(history.history['val_' + config.METRIC]) + '\n')
         f.write(config.METRIC + '\n')
         f.write(str(history.history[config.METRIC]) + '\n')
         f.write('\n\nMODEL SUMMARY\n\n')
