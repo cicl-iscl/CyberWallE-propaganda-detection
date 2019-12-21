@@ -1,4 +1,4 @@
-from model import run, si_predictions_to_spans
+from model import run, si_predictions_to_spans, print_spans
 from collections import Counter
 import time
 
@@ -84,20 +84,22 @@ def run_config(config, file_prefix, data=None, repetitions=5,
                            file_prefix=file_prefix, file_stem=now,
                            file_suffix=str(i))
         if majority_voting:
-            if not predictions:
+            if predictions is None:
                 predictions = labels
-                predictions.rename({'label': 'label_0'})
+                predictions = predictions.rename(columns={'label': 'label_0'})
             else:
                 predictions.insert(loc=len(predictions.columns),
                                    column='label_' + str(i),
                                    value=labels.label)
             label_cols.append('label_' + str(i))
     if majority_voting:
-        predictions['label'] = ''
+        labels = []
         for row in predictions.itertuples():
-            row.label = get_majority_vote([getattr(row, l)
-                                           for l in label_cols])
-        si_predictions_to_spans(predictions)
+            labels.append(get_majority_vote(
+                [getattr(row, l) for l in label_cols]))
+        predictions['label'] = labels
+        spans = si_predictions_to_spans(predictions)
+        print_spans(spans, file_prefix, now, 'majority')
 
     # Return data in case the next config only changes model features
     return data
@@ -114,4 +116,4 @@ data = None
 # config = Config()
 config = Config({'TRAIN_URL': 'https://raw.githubusercontent.com/cicl-iscl/CyberWallE/master/data/train-data-improved-sentiwordnet-arguingfull-pos.tsv?token=AD7GEDNDI6GENLIHFDOMX4K6ASWAU',
                  'DEV_URL': 'https://raw.githubusercontent.com/cicl-iscl/CyberWallE/master/data/dev-improved-sentiwordnet-arguingfull-pos.tsv?token=AD7GEDJPX4IDUX7OOWTHD7S6ASWBQ'})
-data = run_config(config, file_prefix, data, repetitions=1)
+data = run_config(config, file_prefix, data, majority_voting=True)
