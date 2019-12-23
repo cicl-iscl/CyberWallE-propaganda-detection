@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from itertools import takewhile
+import zipfile
 import urllib.request
 from keras.layers import Bidirectional, CuDNNLSTM, Dense, Dropout, \
     TimeDistributed
@@ -127,14 +128,34 @@ def prepare_data(config, word2embedding, training):
     return df, x_raw, x_enc, y, sample_weight, comments
 
 
+def load_zipped_embeddings(infile):
+    word2embedding = {}
+    with zipfile.ZipFile(infile) as f_in_zip:
+        file_in = f_in_zip.filelist[0].filename
+        i = 0
+        with f_in_zip.open(file_in, 'r') as f_in:
+            for line in f_in:
+                values = line.decode().rstrip().split()
+                word2embedding[values[0]] = np.asarray(values[1:],
+                                                       dtype='float32')
+                i += 1
+                if i % 100000 == 0:
+                    print("Read " + str(i) + " embeddings")
+    return word2embedding
+
+
 def get_data(config, word2embedding=None):
     if not word2embedding:
-        word2embedding = {}
-        f = open(config.EMBEDDING_PATH)
-        for line in f:
-            values = line.split()
-            word2embedding[values[0]] = np.asarray(values[1:], dtype='float32')
-        f.close()
+        if config.EMBEDDING_PATH[-4:] == '.zip':
+            word2embedding = load_zipped_embeddings(config.EMBEDDING_PATH)
+        else:
+            word2embedding = {}
+            f = open(config.EMBEDDING_PATH)
+            for line in f:
+                values = line.rstrip().split()
+                word2embedding[values[0]] = np.asarray(values[1:],
+                                                       dtype='float32')
+            f.close()
 
     _, _, train_x, train_y, sample_weight, comments = prepare_data(
         config, word2embedding, training=True)
@@ -145,8 +166,12 @@ def get_data(config, word2embedding=None):
 
 
 class Data:
-    def __init__(self, train_x, train_y, sample_weight,
-                 comments, dev_df, dev_raw, dev_x):
+    def __init__(self,
+                 # If initializing on the fly:
+                 train_x=None, train_y=None, sample_weight=None,
+                 comments=None, dev_df=None, dev_raw=None, dev_x=None,
+                 # If initializing from files:
+                 path=None):
         self.train_x = train_x
         self.train_y = train_y
         self.sample_weight = sample_weight
@@ -154,6 +179,35 @@ class Data:
         self.dev_df = dev_df
         self.dev_raw = dev_raw
         self.dev_x = dev_x
+        if path:
+            self.load(path)
+
+
+    def save(self, path='gdrive/My Drive/colab_projects/data/data/'):
+        np.save(path + 'train_x', self.train_x)
+        np.save(path + 'train_y', self.train_y)
+        np.save(path + 'dev_x', self.dev_x)
+        np.save(path + 'sample_weight', self.sample_weight)
+        self.dev_raw.to_csv(path + 'dev_raw')
+        self.dev_df.to_csv(path + 'dev_df')
+        with open(path + 'comments.txt', 'w', encoding='utf8') as f:
+            for comment in self.comments:
+                f.write(comment + '\n')
+
+
+    def load(self, path='gdrive/My Drive/colab_projects/data/data/'):
+        self.train_x = np.load(path + 'train_x.npy')
+        self.train_y = np.load(path + 'train_y.npy')
+        self.dev_x = np.load(path + 'dev_x.npy')
+        self.sample_weight = np.load(path + 'sample_weight.npy')
+        self.dev_raw = pd.read_csv(path + 'dev_raw')
+        self.dev_df = pd.read_csv(path + 'dev_df')
+        self.comments =[]
+        with open(path + 'comments.txt', 'r', encoding='utf8') as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    self.comments.append(line)
 
 
 ######################
@@ -305,9 +359,15 @@ def run(config, file_stem, file_suffix, verbose=True, predict_spans=True,
         print('Running with config:')
         print(config.pretty_str())
     if not data:
-        if verbose:
-            print('Encoding the data')
-        data = get_data(config, word2embedding)
+        if config.LOAD_DATA:
+            print('Loading data from files')
+            data = Data(path=config.DATA_PATH)
+        else:
+            if verbose:
+                print('Encoding the data')
+            data = get_data(config, word2embedding)
+            if config.SAVE_DATA:
+                data.save()
     if verbose:
         print('Building the model')
     model, history = create_and_fit_bilstm(config, data.train_x,

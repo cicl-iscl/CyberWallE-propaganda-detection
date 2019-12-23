@@ -12,13 +12,18 @@ class Config:
         """
         # Encoding the data:
         self.MAX_SEQ_LEN = 35
-        self.EMBED_DIM = 100
+        self.EMBED_DIM = 300
         self.N_CLASSES = 2
         self.ONLINE_SOURCES = True
-        self.TRAIN_URL = 'https://raw.githubusercontent.com/cicl-iscl/CyberWallE/master/data/train-data-improved-sentiwordnet-arguingfull.tsv?token=AD7GEDLFTVHGUIDOG4EDKYK57FJJY'
-        self.DEV_URL = 'https://raw.githubusercontent.com/cicl-iscl/CyberWallE/master/data/dev-improved-sentiwordnet-arguingfull.tsv?token=AD7GEDKHMNRQLNNRBNDYWJK57FJJ6'
-        self.EMBEDDING_PATH = 'gdrive/My Drive/colab_projects/data/glove.6B.100d.txt'
+        self.TRAIN_URL = 'https://raw.githubusercontent.com/cicl-iscl/CyberWallE/master/data/train-data-improved-sentiwordnet-arguingfull-pos.tsv?token=AD7GEDNDI6GENLIHFDOMX4K6ASWAU'
+        self.DEV_URL = 'https://raw.githubusercontent.com/cicl-iscl/CyberWallE/master/data/dev-improved-sentiwordnet-arguingfull-pos.tsv?token=AD7GEDJPX4IDUX7OOWTHD7S6ASWBQ'
+        self.EMBEDDING_PATH = 'gdrive/My Drive/colab_projects/data/glove.42B.300d.zip'  # 'gdrive/My Drive/colab_projects/data/glove.6B.100d.zip'
         self.UNCASED = True  # If true, words are turned into lower case.
+        self.SAVE_DATA = False  # If true, the following two values can be used
+                                # for re-using the data next time.
+        # In case the training & dev data were saved and can be reused:
+        self.DATA_PATH = 'gdrive/My Drive/colab_projects/data/data/'
+        self.LOAD_DATA = False
 
         # Building the model:
         self.BATCH_SIZE = 128
@@ -31,6 +36,9 @@ class Config:
         self.OPTIMIZER = 'adam'
         self.METRIC = 'categorical_accuracy'
         self.LOSS = 'categorical_crossentropy'
+
+        # Making predictions:
+        self.MAJORITY_VOTING = True
 
         if args:
             for key in args:
@@ -63,17 +71,12 @@ def get_majority_vote(votes):
             max_entry = [key]
         elif count == max_count:
             max_entry.append(key)
-    if len(max_entry) == 1:
-        return max_entry[0]
-    if 'I' in max_entry:
-        return 'I'
-    if 'B' in max_entry:
-        return 'B'
+    # For our data, preferring specific labels in tie situations actually
+    # doesn't make a difference.
     return max_entry[0]
 
 
-def run_config(config, file_prefix, data=None, repetitions=5,
-               majority_voting=False, verbose=True):
+def run_config(config, file_prefix, data=None, repetitions=5, verbose=True):
     now = time.strftime("%Y%m%d-%H%M%S", time.localtime())
     predictions = None
     label_cols = []
@@ -83,7 +86,7 @@ def run_config(config, file_prefix, data=None, repetitions=5,
         data, labels = run(config, data=data, verbose=verbose,
                            file_prefix=file_prefix, file_stem=now,
                            file_suffix=str(i))
-        if majority_voting:
+        if config.MAJORITY_VOTING:
             if predictions is None:
                 predictions = labels
                 predictions = predictions.rename(columns={'label': 'label_0'})
@@ -92,7 +95,7 @@ def run_config(config, file_prefix, data=None, repetitions=5,
                                    column='label_' + str(i),
                                    value=labels.label)
             label_cols.append('label_' + str(i))
-    if majority_voting:
+    if config.MAJORITY_VOTING:
         labels = []
         for row in predictions.itertuples():
             labels.append(get_majority_vote(
@@ -105,15 +108,14 @@ def run_config(config, file_prefix, data=None, repetitions=5,
     return data
 
 
-file_prefix = '/content/gdrive/My Drive/semeval-predictions/'
+file_prefix = '/content/gdrive/My Drive/colab_projects/semeval-predictions/'
 data = None
 
-# for epochs in [5]:
-#     for dropout in [0.2, 0.4]:
+# for epochs in [5, 10, 15]:
+#     for dropout in [0.2, 0.4, 0.6, 0.8]:
 #         config = Config({'EPOCHS': epochs, 'DROPOUT': dropout})
 #         data = run_config(config, file_prefix, data)
 
-# config = Config()
-config = Config({'TRAIN_URL': 'https://raw.githubusercontent.com/cicl-iscl/CyberWallE/master/data/train-data-improved-sentiwordnet-arguingfull-pos.tsv?token=AD7GEDNDI6GENLIHFDOMX4K6ASWAU',
-                 'DEV_URL': 'https://raw.githubusercontent.com/cicl-iscl/CyberWallE/master/data/dev-improved-sentiwordnet-arguingfull-pos.tsv?token=AD7GEDJPX4IDUX7OOWTHD7S6ASWBQ'})
-data = run_config(config, file_prefix, data, majority_voting=True)
+# You can change config values by passing a dictionary to the constructor:
+config = Config()  # {'LOAD_DATA': True}
+data = run_config(config, file_prefix, data)
