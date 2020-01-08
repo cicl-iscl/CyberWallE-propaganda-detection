@@ -134,7 +134,7 @@ if __name__ == '__main__':
 
     lex = parse_sentiwordnet(SENTIWORDNET)
     nlp = English()
-    annotate(lex, '../data/train-data-improved.tsv',
-             '../data/train-data-improved-sentiwordnet.tsv', nlp, True)
+    annotate(lex, '../data/train-improved.tsv',
+             '../data/train-improved-sentiwordnet.tsv', nlp, True)
     annotate(lex, '../data/dev-improved.tsv',
              '../data/dev-improved-sentiwordnet.tsv', nlp, True)

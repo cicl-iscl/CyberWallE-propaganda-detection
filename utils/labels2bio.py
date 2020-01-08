@@ -35,7 +35,7 @@ def labels2bio(span_file, bio_file):
                     try:
                         label_idx = labels.index('label')
                     except ValueError:
-                        label_idx = len(labels) + 1
+                        label_idx = len(labels) - 1
                     continue
 
                 fields = line.strip().split('\t')
@@ -64,5 +64,5 @@ if __name__ == '__main__':
 
     # labels2bio(sys.argv[1], sys.argv[2])
 
-    labels2bio('../data/train-data-sents-improved.tsv',
-               '../data/train-data-improved.tsv')
+    labels2bio('../data/train-improved-FULL-LABELS.tsv',
+               '../data/train-improved.tsv')

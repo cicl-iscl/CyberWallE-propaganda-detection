@@ -196,7 +196,7 @@ if __name__ == "__main__":
     #                  '../data/dev-improved-sentiment-arguing.tsv', False)
 
     init(strategies_full)
-    parse_input_file('../data/train-data-improved-sentiwordnet.tsv',
-                     '../data/train-data-improved-sentiwordnet-arguingfullindiv.tsv')
+    parse_input_file('../data/train-improved-sentiwordnet.tsv',
+                     '../data/train-improved-sentiwordnet-arguingfullindiv.tsv')
     parse_input_file('../data/dev-improved-sentiwordnet.tsv',
                      '../data/dev-improved-sentiwordnet-arguingfullindiv.tsv')

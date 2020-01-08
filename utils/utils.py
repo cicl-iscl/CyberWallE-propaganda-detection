@@ -429,13 +429,13 @@ if __name__ == '__main__':
     ######
 
     annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
-                  "../data/train-data-improved.tsv",
+                  '../data/train-improved-FULL-LABELS.tsv',
                   improved_sent_splitting=True)
 
-    annotate_text(DEV_DATA_FOLDER, None,
-                  "../data/dev-improved.tsv",
-                  improved_sent_splitting=True,
-                  training=False)
+    # annotate_text(DEV_DATA_FOLDER, None,
+    #               "../data/dev-improved.tsv",
+    #               improved_sent_splitting=True,
+    #               training=False)
 
     # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
     #               "../data/train-data-fullsents.tsv",
@@ -446,4 +446,4 @@ if __name__ == '__main__':
     #               max_sent_len=-1,
     #               training=False)
 
-    get_si_dev_gs()
+    # get_si_dev_gs()

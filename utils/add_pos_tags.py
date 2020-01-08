@@ -67,7 +67,7 @@ def parse_input_file(infile, outfile):
 
 
 if __name__ == "__main__":
-    parse_input_file('../data/train-data-improved-sentiwordnet-arguingfullindiv.tsv',
-                     '../data/train-data-improved-sentiwordnet-arguingfullindiv-pos.tsv')
+    parse_input_file('../data/train-improved-sentiwordnet-arguingfullindiv.tsv',
+                     '../data/train-improved-sentiwordnet-arguingfullindiv-pos.tsv')
     parse_input_file('../data/dev-improved-sentiwordnet-arguingfullindiv.tsv',
                      '../data/dev-improved-sentiwordnet-arguingfullindiv-pos.tsv')
