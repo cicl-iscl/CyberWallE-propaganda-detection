@@ -202,12 +202,36 @@ class Data:
         self.sample_weight = np.load(path + 'sample_weight.npy')
         self.dev_raw = pd.read_csv(path + 'dev_raw')
         self.dev_df = pd.read_csv(path + 'dev_df')
-        self.comments =[]
+        self.comments = []
         with open(path + 'comments.txt', 'r', encoding='utf8') as f:
             for line in f:
                 line = line.strip()
                 if line:
                     self.comments.append(line)
+        # self.print_summary()
+
+
+    def print_summary(self):
+        print('train_x')
+        print(self.train_x.shape)
+        print(self.train_x)
+        print('\ntrain_y')
+        print(self.train_y.shape)
+        print(self.train_y)
+        print('\ndev_x')
+        print(self.dev_x.shape)
+        print(self.dev_x)
+        print('\nsample_weight')
+        print(self.sample_weight.shape)
+        print(self.sample_weight)
+        print('\ndev_raw')
+        print(self.dev_raw.info(verbose=True))
+        print(self.dev_raw.head())
+        print('\ndev_df')
+        print(self.dev_df.info(verbose=True))
+        print(self.dev_df.head())
+        print('\ncomments')
+        print(self.comments)
 
 
 ######################
@@ -240,12 +264,15 @@ def create_and_fit_bilstm(config, train_x, train_y, sample_weight):
 ###############
 
 
-def get_bio_predictions(model, x, x_raw, n_classes):
+def get_bio_predictions(model, x, x_raw, n_classes, load_data):
     y_hat = model.predict(x)
     y_hat = y_hat.reshape(-1, n_classes).argmax(axis=1).reshape(x.shape[:2])
     labels = []
     for row in x_raw.itertuples():
-        sent_idx = row.Index - 1
+        if load_data:
+            sent_idx = row.sent_id - 1
+        else:
+            sent_idx = row.Index - 1
         for tok_idx in range(row.n_toks):
             if y_hat[sent_idx][tok_idx] == 0:
                 label = "O"
@@ -318,7 +345,7 @@ def print_spans(spans, file_prefix, file_stem, file_suffix):
 
 def predict(config, model, history, dev_df, dev_raw, dev_x, comments,
             file_prefix, file_stem, file_suffix, predict_spans=True):
-    y_hat = get_bio_predictions(model, dev_x, dev_raw, config.N_CLASSES)
+    y_hat = get_bio_predictions(model, dev_x, dev_raw, config.N_CLASSES, config.LOAD_DATA)
     result_df = pd.concat([dev_df, pd.DataFrame(y_hat, columns=['label'])],
                           axis=1, sort=False)
 
