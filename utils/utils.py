@@ -428,14 +428,14 @@ if __name__ == '__main__':
     #               training=False, max_sent_len=40)
     ######
 
-    # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
-    #               "../data/train-data-sents-improved.tsv",
-    #               improved_sent_splitting=True)
+    annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
+                  "../data/train-data-improved.tsv",
+                  improved_sent_splitting=True)
 
-    # annotate_text(DEV_DATA_FOLDER, None,
-    #               "../data/dev-improved.tsv",
-    #               improved_sent_splitting=True,
-    #               training=False)
+    annotate_text(DEV_DATA_FOLDER, None,
+                  "../data/dev-improved.tsv",
+                  improved_sent_splitting=True,
+                  training=False)
 
     # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
     #               "../data/train-data-fullsents.tsv",
