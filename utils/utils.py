@@ -4,6 +4,7 @@ from nltk.tokenize import sent_tokenize
 from nltk.tokenize.punkt import PunktSentenceTokenizer, PunktParameters
 
 TC_LABELS_FILE = "../datasets/train-task2-TC.labels"
+TC_LABELS_FILE_DEV = "../datasets/dev-task-TC-template.out"
 TRAIN_DATA_FOLDER = "../datasets/train-articles/"
 DEV_DATA_FOLDER = "../datasets/dev-articles/"
 SI_PREDICTIONS_FILE = '../data/dev_predictions_bio.tsv'
@@ -415,7 +416,7 @@ def write_prediction(outfile,
 
 if __name__ == '__main__':
     LABELS_DATA_FOLDER = "../datasets/train-labels-task2-technique-classification/"
-    # get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER, "../data/train-task2-TC-with-spans.labels")
+    get_spans_from_text(TC_LABELS_FILE_DEV, DEV_DATA_FOLDER, "../data/dev-task2-TC-with-spans.txt")
 
 
     ###### BASELINE
@@ -428,9 +429,9 @@ if __name__ == '__main__':
     #               training=False, max_sent_len=40)
     ######
 
-    annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
-                  '../data/train-improved-FULL-LABELS.tsv',
-                  improved_sent_splitting=True)
+    # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
+    #               '../data/train-improved-FULL-LABELS.tsv',
+    #               improved_sent_splitting=True)
 
     # annotate_text(DEV_DATA_FOLDER, None,
     #               "../data/dev-improved.tsv",
