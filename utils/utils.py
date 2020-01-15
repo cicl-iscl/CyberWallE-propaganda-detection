@@ -414,10 +414,23 @@ def write_prediction(outfile,
     return prev_span_start
 
 
+def dump_repetition(file_to_read, file_to_write):
+    with open(file_to_read, "r") as fl:
+        lines = fl.readlines()
+
+    with open(file_to_write, "w") as fl:
+        for line in lines:
+            columns = line.strip().split("\t")
+            if columns[1] == "Repetition":
+                columns[4] = columns[4] + " " + columns[4]
+            fl.write("\t".join(columns) + "\n")
+
+
 if __name__ == '__main__':
     LABELS_DATA_FOLDER = "../datasets/train-labels-task2-technique-classification/"
-    get_spans_from_text(TC_LABELS_FILE_DEV, DEV_DATA_FOLDER, "../data/dev-task2-TC-with-spans.txt")
+    # get_spans_from_text(TC_LABELS_FILE_DEV, DEV_DATA_FOLDER, "../data/dev-task2-TC-with-spans.txt")
 
+    dump_repetition("../data/train-task2-TC-with-spans.txt", "../data/dumb-train-task2-TC-with-spans.txt")
 
     ###### BASELINE
     # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
