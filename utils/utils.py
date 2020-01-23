@@ -82,7 +82,11 @@ def get_spans_from_text(labels_file, raw_data_folder, file_to_write):
                 open_doc_id = doc_id
 
         span = open_doc_txt[from_id:to_id].strip().replace('\n', ' ')
-        output_table.append(row + [span])
+        number_of_repetitions = open_doc_txt.count(span)
+        if number_of_repetitions > 1:
+            output_table.append(row + [span + " " + span] + [str(number_of_repetitions)])
+        else:
+            output_table.append(row + [span] + [str(number_of_repetitions)])
 
     with open(file_to_write, 'w') as f:
         for row in output_table:
@@ -429,8 +433,9 @@ def dump_repetition(file_to_read, file_to_write):
 if __name__ == '__main__':
     LABELS_DATA_FOLDER = "../datasets/train-labels-task2-technique-classification/"
     # get_spans_from_text(TC_LABELS_FILE_DEV, DEV_DATA_FOLDER, "../data/dev-task2-TC-with-spans.txt")
+    get_spans_from_text(TC_LABELS_FILE_DEV, DEV_DATA_FOLDER, "../data/dev-task2-TC-with-spans-with-repetition.txt")
 
-    dump_repetition("../data/train-task2-TC-with-spans.txt", "../data/dumb-train-task2-TC-with-spans.txt")
+    # dump_repetition("../data/train-task2-TC-with-spans.txt", "../data/dumb-train-task2-TC-with-spans.txt")
 
     ###### BASELINE
     # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
