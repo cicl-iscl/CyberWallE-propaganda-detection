@@ -15,9 +15,12 @@ class Config:
         self.EMBED_DIM = 300
         self.N_CLASSES = 2
         self.ONLINE_SOURCES = True
-        self.TRAIN_URL = 'https://raw.githubusercontent.com/cicl-iscl/CyberWallE/master/data/train-data-improved-sentiwordnet-arguingfull-pos.tsv?token=AD7GEDNDI6GENLIHFDOMX4K6ASWAU'
-        self.DEV_URL = 'https://raw.githubusercontent.com/cicl-iscl/CyberWallE/master/data/dev-improved-sentiwordnet-arguingfull-pos.tsv?token=AD7GEDJPX4IDUX7OOWTHD7S6ASWBQ'
+        self.TRAIN_URL = 'https://raw.githubusercontent.com/cicl-iscl/CyberWallE/master/data/train-improved-sentiwordnet-arguingfullindiv-pos.tsv?token=AD7GEDPOUJFOQS3HTDRWMOS6KZP62'
+        self.DEV_URL = 'https://raw.githubusercontent.com/cicl-iscl/CyberWallE/master/data/dev-improved-sentiwordnet-arguingfullindiv-pos.tsv?token=AD7GEDNCXBQCYYC5ZKLNIWC6KZP6Y'
         self.EMBEDDING_PATH = 'gdrive/My Drive/colab_projects/data/glove.42B.300d.zip'  # 'gdrive/My Drive/colab_projects/data/glove.6B.100d.zip'
+        self.TRAIN_BERT = 'gdrive/My Drive/colab_projects/data/train_bert.tsv'
+        self.DEV_BERT = 'gdrive/My Drive/colab_projects/data/dev_bert.tsv'
+        self.USE_BERT = False
         self.UNCASED = True  # If true, words are turned into lower case.
         self.SAVE_DATA = False  # If true, the following two values can be used
                                 # for re-using the data next time.
@@ -44,9 +47,13 @@ class Config:
             for key in args:
                 setattr(self, key, args[key])
 
+        if self.USE_BERT:
+            self.EMBED_DIM = 768
+
     def pretty_str(self):
         return 'max seq len: ' + str(self.MAX_SEQ_LEN) + '\n' + \
                'embedding depth: ' + str(self.EMBED_DIM) + '\n' + \
+               'BERT embeddings: ' + str(self.USE_BERT) + '\n' + \
                'number of labels: ' + str(config.N_CLASSES) + '\n' + \
                'batch size: ' + str(self.BATCH_SIZE) + '\n' + \
                'epochs: ' + str(self.EPOCHS) + '\n' + \
@@ -111,11 +118,13 @@ def run_config(config, file_prefix, data=None, repetitions=5, verbose=True):
 file_prefix = '/content/gdrive/My Drive/colab_projects/semeval-predictions/'
 data = None
 
+## Hyperparameter tuning:
 # for epochs in [5, 10, 15]:
 #     for dropout in [0.2, 0.4, 0.6, 0.8]:
 #         config = Config({'EPOCHS': epochs, 'DROPOUT': dropout})
 #         data = run_config(config, file_prefix, data)
 
-# You can change config values by passing a dictionary to the constructor:
-config = Config()  # {'LOAD_DATA': True}
+## You can change config values by passing a dictionary to the constructor:
+# config = Config({'LOAD_DATA': True})
+config = Config({'USE_BERT': True})
 data = run_config(config, file_prefix, data)

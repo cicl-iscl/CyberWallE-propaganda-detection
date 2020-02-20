@@ -49,6 +49,70 @@ def get_features(input_df, feature_cols):
     return x
 
 
+def bert_embeddings_for_sent(bert_tokens, row, feature_header, embedding_matrix,
+                             embed_dim, sent_idx, uncased):
+    if len(bert_tokens) < len(row.token):
+        print('BERT', [i[0] for i in bert_tokens])
+        print('X', row.token)
+    word_idx = 0
+    for (tok, embed) in bert_tokens:
+        if word_idx == row.n_toks:
+            break
+        word = str(row.token[word_idx])
+        if word == '\ufeff':
+            word_idx += 1
+            continue
+        if uncased:
+            word = word.lower()
+        if tok == word or word.startswith(tok):
+            # startswith: Use embedding of first subtoken
+            embedding_matrix[sent_idx - 1][word_idx][:embed_dim] = embed
+            for i, feature in enumerate(feature_header):
+                embedding_matrix[sent_idx - 1][word_idx][embed_dim + i] = \
+                    getattr(row, feature)[word_idx]
+            word_idx += 1
+            continue
+        if tok.startswith('##') and not word.startswith('##'):
+            # BERT word continutation prefix (e.g. per ##pet ##uate)
+            continue
+
+
+def encode_x_bert(x, bert_file, feature_header, max_seq_len, embed_dim=768, uncased=True):
+    # TODO this currently assumes that the BERT file only contains information
+    # about a single layer. extend this to multiple layers?
+    embedding_matrix = np.zeros([len(x), max_seq_len,
+                                 embed_dim + len(feature_header)])
+    prev_sent_idx = 1
+    bert_tokens = []
+    sentences = x.itertuples()
+    with open(bert_file, encoding='utf8') as f:
+        for line in f:
+            cells = line.split('\t')
+            sent_idx = int(cells[0])
+            layer = int(cells[1])
+            token = cells[2]
+            embedding = np.fromstring(cells[3][1:-1], sep=',')
+
+            if sent_idx != prev_sent_idx:
+                if sent_idx % 1000 == 0:
+                    print("BERT embeddings for sentence", sent_idx)
+                row = next(sentences)
+                assert row.Index == prev_sent_idx
+                bert_embeddings_for_sent(bert_tokens, row, feature_header,
+                                         embedding_matrix, embed_dim,
+                                         prev_sent_idx, uncased)
+                bert_tokens = []
+
+            bert_tokens.append((token, embedding))
+            prev_sent_idx = sent_idx
+
+    # Last line:
+    row = next(sentences)
+    bert_embeddings_for_sent(bert_tokens, row, feature_header, embedding_matrix,
+                             embed_dim, prev_sent_idx, uncased)
+    return embedding_matrix
+
+
 def encode_x(x, word2embedding, feature_header, max_seq_len,
              embed_dim, uncased):
     """Encode the input data.
@@ -98,7 +162,8 @@ def prepare_data(config, word2embedding, training):
     else:
         infile = config.DEV_URL
     comments = get_comments(infile, config.ONLINE_SOURCES)
-    df = pd.read_csv(infile, sep='\t', skiprows=len(comments), quoting=3)
+    df = pd.read_csv(infile, sep='\t', skiprows=len(comments), quoting=3,
+                     encoding='utf8')
 
     std_cols = ['document_id', 'sent_id', 'token_start',
                 'token_end', 'token', 'label']
@@ -108,7 +173,16 @@ def prepare_data(config, word2embedding, training):
             feature_cols.append(col)
 
     x_raw = get_features(df, feature_cols)
-    x_enc = encode_x(x_raw, word2embedding, feature_cols,
+    if config.USE_BERT:
+        if training:
+            bert_file = config.TRAIN_BERT
+        else:
+            bert_file = config.DEV_BERT
+        x_enc = encode_x_bert(x_raw, bert_file, feature_cols,
+                              config.MAX_SEQ_LEN, config.EMBED_DIM,
+                              config.UNCASED)
+    else:
+        x_enc = encode_x(x_raw, word2embedding, feature_cols,
                      config.MAX_SEQ_LEN, config.EMBED_DIM, config.UNCASED)
 
     y = None
@@ -145,7 +219,7 @@ def load_zipped_embeddings(infile):
 
 
 def get_data(config, word2embedding=None):
-    if not word2embedding:
+    if (not word2embedding) and (not config.USE_BERT):
         if config.EMBEDDING_PATH[-4:] == '.zip':
             word2embedding = load_zipped_embeddings(config.EMBEDDING_PATH)
         else:
@@ -202,36 +276,12 @@ class Data:
         self.sample_weight = np.load(path + 'sample_weight.npy')
         self.dev_raw = pd.read_csv(path + 'dev_raw')
         self.dev_df = pd.read_csv(path + 'dev_df')
-        self.comments = []
+        self.comments =[]
         with open(path + 'comments.txt', 'r', encoding='utf8') as f:
             for line in f:
                 line = line.strip()
                 if line:
                     self.comments.append(line)
-        # self.print_summary()
-
-
-    def print_summary(self):
-        print('train_x')
-        print(self.train_x.shape)
-        print(self.train_x)
-        print('\ntrain_y')
-        print(self.train_y.shape)
-        print(self.train_y)
-        print('\ndev_x')
-        print(self.dev_x.shape)
-        print(self.dev_x)
-        print('\nsample_weight')
-        print(self.sample_weight.shape)
-        print(self.sample_weight)
-        print('\ndev_raw')
-        print(self.dev_raw.info(verbose=True))
-        print(self.dev_raw.head())
-        print('\ndev_df')
-        print(self.dev_df.info(verbose=True))
-        print(self.dev_df.head())
-        print('\ncomments')
-        print(self.comments)
 
 
 ######################
@@ -264,15 +314,12 @@ def create_and_fit_bilstm(config, train_x, train_y, sample_weight):
 ###############
 
 
-def get_bio_predictions(model, x, x_raw, n_classes, load_data):
+def get_bio_predictions(model, x, x_raw, n_classes):
     y_hat = model.predict(x)
     y_hat = y_hat.reshape(-1, n_classes).argmax(axis=1).reshape(x.shape[:2])
     labels = []
     for row in x_raw.itertuples():
-        if load_data:
-            sent_idx = row.sent_id - 1
-        else:
-            sent_idx = row.Index - 1
+        sent_idx = row.Index - 1
         for tok_idx in range(row.n_toks):
             if y_hat[sent_idx][tok_idx] == 0:
                 label = "O"
@@ -345,7 +392,7 @@ def print_spans(spans, file_prefix, file_stem, file_suffix):
 
 def predict(config, model, history, dev_df, dev_raw, dev_x, comments,
             file_prefix, file_stem, file_suffix, predict_spans=True):
-    y_hat = get_bio_predictions(model, dev_x, dev_raw, config.N_CLASSES, config.LOAD_DATA)
+    y_hat = get_bio_predictions(model, dev_x, dev_raw, config.N_CLASSES)
     result_df = pd.concat([dev_df, pd.DataFrame(y_hat, columns=['label'])],
                           axis=1, sort=False)
 
