@@ -429,11 +429,47 @@ def dump_repetition(file_to_read, file_to_write):
                 columns[4] = columns[4] + " " + columns[4]
             fl.write("\t".join(columns) + "\n")
 
+def generate_labels_folder(file_with_labels, new_folder_dir):
+    """
+    The function which is used to create a folder which contains individual files with labels.
+    This folder could be used as labels_data_folder argument for the annotate_data function.
+     
+    :param file_with_labels: in our case, dev-task-TC-template.out
+    :param new_folder_dir: 
+    """
+    document_id2spans = dict()
+
+    with open(file_with_labels, "r", encoding="utf-8") as file:
+        lines = file.readlines()
+        for line in lines:
+            document_id, _, span_start, span_end = line.split()
+
+            if document_id not in document_id2spans:
+                document_id2spans[document_id] = []
+
+            document_id2spans[document_id].append((span_start, span_end))
+
+    for document_id in document_id2spans.keys():
+        new_filename = "{}article{}.task2-TC.labels".format(new_folder_dir, document_id)
+        with open(new_filename, "w") as file:
+            for span_start, span_end in document_id2spans[document_id]:
+                output_line = "{}\tDumb_class\t{}\t{}\n".format(document_id, span_start, span_end)
+                file.write(output_line)
+
+
 
 if __name__ == '__main__':
     LABELS_DATA_FOLDER = "../datasets/train-labels-task2-technique-classification/"
+
+    ### Stuff which Maxim and Sam used to generate spans for development file
+    GENERATED_LABELS_FOLDER = "../datasets/dev-labels-task2-technique-classification/"
+    generate_labels_folder(TC_LABELS_FILE_DEV, GENERATED_LABELS_FOLDER)
+    annotate_text(DEV_DATA_FOLDER, GENERATED_LABELS_FOLDER,
+                  "../data/train+dev-task1.tsv",
+                  improved_sent_splitting=True)
+
     # get_spans_from_text(TC_LABELS_FILE_DEV, DEV_DATA_FOLDER, "../data/dev-task2-TC-with-spans.txt")
-    get_spans_from_text(TC_LABELS_FILE_DEV, DEV_DATA_FOLDER, "../data/dev-task2-TC-with-spans-with-repetition.txt")
+    # get_spans_from_text(TC_LABELS_FILE_DEV, DEV_DATA_FOLDER, "../data/dev-task2-TC-with-spans-with-repetition.txt")
 
     # dump_repetition("../data/train-task2-TC-with-spans.txt", "../data/dumb-train-task2-TC-with-spans.txt")
 

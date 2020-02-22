@@ -64,5 +64,9 @@ if __name__ == '__main__':
 
     # labels2bio(sys.argv[1], sys.argv[2])
 
-    labels2bio('../data/train-improved-FULL-LABELS.tsv',
-               '../data/train-improved.tsv')
+    # labels2bio('../data/train-improved-FULL-LABELS.tsv',
+    #            '../data/train-improved.tsv')
+
+    ### Maxim's and Sam's experiment (EQUAL CONTRIBUTION) of train+dev
+    labels2bio('../data/train+dev-task1.tsv',
+               '../data/train+dev-improved.tsv')
