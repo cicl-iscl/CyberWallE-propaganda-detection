@@ -7,8 +7,10 @@ TC_LABELS_FILE = "../datasets/train-task2-TC.labels"
 TC_LABELS_FILE_DEV = "../datasets/dev-task-TC-template.out"
 TRAIN_DATA_FOLDER = "../datasets/train-articles/"
 DEV_DATA_FOLDER = "../datasets/dev-articles/"
+TEST_DATA_FOLDER = "../datasets/test-articles/"
 SI_PREDICTIONS_FILE = '../data/dev_predictions_bio.tsv'
 SI_SPANS_FILE = '../data/dev_predictions_spans.txt'
+LABELS_DATA_FOLDER = "../datasets/train-labels-task2-technique-classification/"
 
 
 def get_si_dev_gs(tc_file='../datasets/dev-task-TC-template.out',
@@ -459,29 +461,17 @@ def generate_labels_folder(file_with_labels, new_folder_dir):
 
 
 if __name__ == '__main__':
-    LABELS_DATA_FOLDER = "../datasets/train-labels-task2-technique-classification/"
-
     ### Stuff which Maxim and Sam used to generate spans for development file
-    GENERATED_LABELS_FOLDER = "../datasets/dev-labels-task2-technique-classification/"
-    generate_labels_folder(TC_LABELS_FILE_DEV, GENERATED_LABELS_FOLDER)
-    annotate_text(DEV_DATA_FOLDER, GENERATED_LABELS_FOLDER,
-                  "../data/train+dev-task1.tsv",
-                  improved_sent_splitting=True)
+    # GENERATED_LABELS_FOLDER = "../datasets/dev-labels-task2-technique-classification/"
+    # generate_labels_folder(TC_LABELS_FILE_DEV, GENERATED_LABELS_FOLDER)
+    # annotate_text(DEV_DATA_FOLDER, GENERATED_LABELS_FOLDER,
+    #               "../data/train+dev-task1.tsv",
+    #               improved_sent_splitting=True)
 
     # get_spans_from_text(TC_LABELS_FILE_DEV, DEV_DATA_FOLDER, "../data/dev-task2-TC-with-spans.txt")
     # get_spans_from_text(TC_LABELS_FILE_DEV, DEV_DATA_FOLDER, "../data/dev-task2-TC-with-spans-with-repetition.txt")
 
     # dump_repetition("../data/train-task2-TC-with-spans.txt", "../data/dumb-train-task2-TC-with-spans.txt")
-
-    ###### BASELINE
-    # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
-    #               "../data/train-data-with-sents-baseline-40.tsv",
-    #               improved_sent_splitting=False, max_sent_len=40)
-    # annotate_text(DEV_DATA_FOLDER, None,
-    #               "../data/dev-baseline-40.tsv",
-    #               improved_sent_splitting=False,
-    #               training=False, max_sent_len=40)
-    ######
 
     # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
     #               '../data/train-improved-FULL-LABELS.tsv',
@@ -491,14 +481,9 @@ if __name__ == '__main__':
     #               "../data/dev-improved.tsv",
     #               improved_sent_splitting=True,
     #               training=False)
-
-    # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
-    #               "../data/train-data-fullsents.tsv",
-    #               max_sent_len=-1)
-
-    # annotate_text(DEV_DATA_FOLDER, None,
-    #               "../data/dev-fullsents.tsv",
-    #               max_sent_len=-1,
-    #               training=False)
+    annotate_text(TEST_DATA_FOLDER, None,
+                  "../data/test-improved.tsv",
+                  improved_sent_splitting=True,
+                  training=False)
 
     # get_si_dev_gs()

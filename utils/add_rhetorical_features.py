@@ -200,3 +200,5 @@ if __name__ == "__main__":
                      '../data/train-improved-sentiwordnet-arguingfullindiv.tsv')
     parse_input_file('../data/dev-improved-sentiwordnet.tsv',
                      '../data/dev-improved-sentiwordnet-arguingfullindiv.tsv')
+    parse_input_file('../data/test-improved-sentiwordnet.tsv',
+                     '../data/test-improved-sentiwordnet-arguingfullindiv.tsv')

@@ -138,3 +138,5 @@ if __name__ == '__main__':
              '../data/train-improved-sentiwordnet.tsv', nlp, True)
     annotate(lex, '../data/dev-improved.tsv',
              '../data/dev-improved-sentiwordnet.tsv', nlp, True)
+    annotate(lex, '../data/test-improved.tsv',
+             '../data/test-improved-sentiwordnet.tsv', nlp, True)
