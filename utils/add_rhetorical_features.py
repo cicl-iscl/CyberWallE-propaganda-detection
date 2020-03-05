@@ -1,7 +1,6 @@
 # Parses the argument lexicon by Somasundaran, Ruppenhofer & Wiebe.
 
 import re
-import sys
 
 
 path = '../data/arglex/'
@@ -58,7 +57,7 @@ def init(strategies, verbose=False):
                                         '(' + expansions[macro] + ' )?')
                     line = line.replace('(' + macro + ')', expansions[macro])
                 line = line.replace('\\', '')
-                regexes[strategy] += [line]
+                regexes[strategy] += ['\\b' + line + '\\b']
 
     if verbose:
         print('Regexes for rhetorical strategies:')
@@ -101,10 +100,9 @@ def find_rhetorical_strategies(token_list, strategy):
     return token_indices
 
 
-def parse_input_file(infile, outfile, full=True, indiv_cols=False):
+def parse_input_file_si(infile, outfile, full=True, indiv_cols=False):
     """
-
-    full : if True, use all strategies, if false, use the 5 most important
+    full: if True, use all strategies, if false, use the 5 most important
            strategies. Used for generating the preprocessing description.
            Should match the initialization
     indiv_cols: if True, each rhetorical strategy is represented by its own
@@ -181,24 +179,61 @@ def parse_input_file(infile, outfile, full=True, indiv_cols=False):
             prev_article = article
 
 
-# TODO read entire directories? or otherwise initialize the above only once
+def annotate_tc(in_file):
+    strategies = [s for s in regexes]
+    strategies.sort()
+    matched_strategies = {}
+
+    with open(in_file, encoding='utf8') as f:
+        lines = f.readlines()
+
+    with open(in_file, 'w', encoding='utf8') as f:
+        f.write(lines[0].strip() + '\t' + '\t'.join(strategies) + '\n')
+        for line in lines[1:]:
+            f.write(line.strip())
+            text = line.split('\t')[4].strip().lower()
+            for strategy in strategies:
+                matched = 0
+                for regex in regexes[strategy]:
+                    for match in re.finditer(regex, text):
+                        matched = 1
+                        break
+                f.write('\t' + str(matched))
+                if matched:
+                    try:
+                        matched_strategies[strategy] = matched_strategies[strategy] + 1
+                    except KeyError:
+                        matched_strategies[strategy] = 1
+            f.write('\n')
+    for matched_strat in matched_strategies:
+        strategies.remove(matched_strat)
+    matched_strategies = sorted(matched_strategies.items(),
+                                key=lambda s: s[1], reverse=True)
+    for s in matched_strategies:
+        print(s)
+    print("Strategies without occurrences:", strategies)
+    print()
+
+
 if __name__ == "__main__":
-    # if len(sys.argv) != 2:
-    #     sys.stderr.write('Usage:', sys.argv[0] + 'FILENAME\n')
-    #     sys.exit(1)
+    ### Task 1: Span identification
+    # init(strategies_full)
+    # parse_input_file_si('../data/train-improved-sentiwordnet.tsv',
+    #                     '../data/train-improved-sentiwordnet-arguingfullindiv.tsv')
+    # parse_input_file_si('../data/dev-improved-sentiwordnet.tsv',
+    #                     '../data/dev-improved-sentiwordnet-arguingfullindiv.tsv')
+    # parse_input_file_si('../data/test-improved-sentiwordnet.tsv',
+    #                     '../data/test-improved-sentiwordnet-arguingfullindiv.tsv')
 
-    # init(strategies_5)
-    # # parse_demo_file(path + 'patterntest.txt')
-    # parse_input_file('../data/train-data-bio-improved-sentiment.tsv',
-    #                  '../data/train-data-bio-improved-sentiment-arguing.tsv',
-    #                  False)
-    # parse_input_file('../data/dev-improved-sentiment.tsv',
-    #                  '../data/dev-improved-sentiment-arguing.tsv', False)
-
+    ### Task 2: Technique identification
     init(strategies_full)
-    parse_input_file('../data/train-improved-sentiwordnet.tsv',
-                     '../data/train-improved-sentiwordnet-arguingfullindiv.tsv')
-    parse_input_file('../data/dev-improved-sentiwordnet.tsv',
-                     '../data/dev-improved-sentiwordnet-arguingfullindiv.tsv')
-    parse_input_file('../data/test-improved-sentiwordnet.tsv',
-                     '../data/test-improved-sentiwordnet-arguingfullindiv.tsv')
+    # These strategies don't actually appear in the training data:
+    regexes.pop('inyourshoes')
+    regexes.pop('doubt')
+    # These strategies barely appear in the training data (<10 occurrences):
+    regexes.pop('difficulty')
+    regexes.pop('conditionals')
+    regexes.pop('assessments')
+    regexes.pop('rhetoricalquestion')
+    annotate_tc('../data/tc-train.tsv')
+    annotate_tc('../data/tc-dev.tsv')
