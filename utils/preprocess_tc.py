@@ -61,16 +61,16 @@ def get_spans_from_text(labels_file, raw_data_folder, file_to_write,
         else:
             output_table.append(row + [text])
 
-    with open(file_to_write, 'w') as f:
+    with open(file_to_write, 'w', encoding='utf8') as f:
         for row in output_table:
             f.write('\t'.join(row) + "\n")
 
 
 def add_repetition_to_text(file_to_read, file_to_write):
-    with open(file_to_read, "r") as fl:
+    with open(file_to_read, "r", encoding='utf8') as fl:
         lines = fl.readlines()
 
-    with open(file_to_write, "w") as fl:
+    with open(file_to_write, "w", encoding='utf8') as fl:
         for line in lines:
             columns = line.strip().split("\t")
             if columns[1] == "Repetition":
