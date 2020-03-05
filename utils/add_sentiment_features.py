@@ -8,6 +8,10 @@ SENTIWORDNET = '../data/sentiment/SentiWordNet_3.0.0.txt'
 
 
 def parse_sentiwordnet(lexicon_file):
+    """
+    Creates a dict(str -> (float, float)) from words to positive and negative
+    scores. If a word contains several entries, the scores are averaged.
+    """
     lex = dict()
     with open(lexicon_file, encoding='utf8') as f:
         for line in f:
@@ -53,7 +57,6 @@ def parse_sentiwords(lexicon_file):
             continue
         fields = line.split('\t')
         # word#pos    value
-        # TODO update if we include POS info
         word = fields[0].split('#')[0]
         value = float(fields[1])
         if word == prev_word:
@@ -69,7 +72,7 @@ def parse_sentiwords(lexicon_file):
     return lex
 
 
-def annotate(lex, infile, outfile, nlp, sentiwordnet):
+def annotate_tokens(lex, infile, outfile, nlp, sentiwordnet):
     with open(infile, encoding='utf8') as f_in:
         with open(outfile, 'w', encoding='utf8') as f_out:
             first_line = True
@@ -120,23 +123,50 @@ def annotate(lex, infile, outfile, nlp, sentiwordnet):
                     f_out.write(line + '\t' + str(value) + '\n')
 
 
+def annotate_sequences(lex, in_file, nlp):
+    with open(in_file, encoding='utf8') as f:
+        lines = f.readlines()
+
+    with open(in_file, 'w', encoding='utf8') as f:
+        f.write(lines[0].strip() + '\thighest_pos' + '\thighest_neg\n')
+        for line in lines[1:]:
+            text = line.split('\t')[4]
+            highest_pos, highest_neg = 0.0, 0.0
+            for word in text.strip().split():
+                word_clean = ''
+                if word.isalpha():
+                    word_clean = word.lower()
+                else:
+                    for c in word.lower():
+                        if c.isalpha():
+                            word_clean += c
+                if not word_clean:
+                    continue
+                try:
+                    pos, neg = lex[word_clean]
+                except KeyError:
+                    # Try looking up a lemmatized version
+                    pos, neg = lex.get(nlp(word_clean)[0].lemma_, (0.0, 0.0))
+                if pos > highest_pos:
+                    highest_pos = pos
+                if neg > highest_neg:
+                    highest_neg = neg
+            f.write(line.strip() + '\t' + str(highest_pos) + '\t' + str(highest_neg) + '\n')
+
+
 if __name__ == '__main__':
-    # if len(sys.argv) != 3:
-    #     sys.stderr.write('Usage:', sys.argv[0] + ' INFILE OUTFILE\n')
-    #     sys.exit(1)
-
-    # lex = parse_sentiwords(SENTIWORDS)
+    ### Task 1: Span identification
+    # lex = parse_sentiwordnet(SENTIWORDNET)
     # nlp = English()
-    # annotate(lex, '../data/train-data-bio-improved.tsv',
-    #          '../data/train-data-bio-improved-sentiment.tsv', nlp, False)
-    # annotate(lex, '../data/dev-improved.tsv',
-    #          '../data/dev-improved-sentiment.tsv', nlp, False)
+    # annotate_tokens(lex, '../data/train-improved.tsv',
+    #                 '../data/train-improved-sentiwordnet.tsv', nlp, True)
+    # annotate_tokens(lex, '../data/dev-improved.tsv',
+    #                 '../data/dev-improved-sentiwordnet.tsv', nlp, True)
+    # annotate_tokens(lex, '../data/test-improved.tsv',
+    #                 '../data/test-improved-sentiwordnet.tsv', nlp, True)
 
+    ### Task 2: Technique identification
     lex = parse_sentiwordnet(SENTIWORDNET)
     nlp = English()
-    annotate(lex, '../data/train-improved.tsv',
-             '../data/train-improved-sentiwordnet.tsv', nlp, True)
-    annotate(lex, '../data/dev-improved.tsv',
-             '../data/dev-improved-sentiwordnet.tsv', nlp, True)
-    annotate(lex, '../data/test-improved.tsv',
-             '../data/test-improved-sentiwordnet.tsv', nlp, True)
+    annotate_sequences(lex, '../data/tc-train.tsv', nlp)
+    annotate_sequences(lex, '../data/tc-dev.tsv', nlp)
