@@ -78,18 +78,33 @@ def add_repetition_to_text(file_to_read, file_to_write):
             fl.write("\t".join(columns) + "\n")
 
 
-if __name__ == '__main__':
-    get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER,
-                        "../data/tc-train.tsv", add_repetition_count=True)
-    get_spans_from_text(TC_LABELS_FILE_DEV, DEV_DATA_FOLDER,
-                        "../data/tc-dev.tsv", add_repetition_count=True)
+def add_sequence_lengths(in_file):
+    with open(in_file, encoding='utf8') as f:
+        lines = f.readlines()
 
-    # For the 100% BERT model:
-    get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER,
-                        "../data/tc-train-repetition.tsv",
-                        add_repetition_text=True)
-    get_spans_from_text(TC_LABELS_FILE_DEV, DEV_DATA_FOLDER,
-                        "../data/tc-dev-repetition.tsv",
-                        add_repetition_text=True)
-    # add_repetition_to_text("../data/tc-train.tsv",
-    #                        "../data/tc-train-repetition.tsv")
+    with open(in_file, 'w', encoding='utf8') as f:
+        f.write(lines[0].strip() + '\tlength\n')
+        for line in lines[1:]:
+            text = line.split('\t')[4]
+            length = len(text.strip().split())
+            f.write(line.strip() + '\t' + str(length) + '\n')
+
+
+if __name__ == '__main__':
+    # get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER,
+    #                     "../data/tc-train.tsv", add_repetition_count=True)
+    # get_spans_from_text(TC_LABELS_FILE_DEV, DEV_DATA_FOLDER,
+    #                     "../data/tc-dev.tsv", add_repetition_count=True)
+
+    # # For the 100% BERT model:
+    # get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER,
+    #                     "../data/tc-train-repetition.tsv",
+    #                     add_repetition_text=True)
+    # get_spans_from_text(TC_LABELS_FILE_DEV, DEV_DATA_FOLDER,
+    #                     "../data/tc-dev-repetition.tsv",
+    #                     add_repetition_text=True)
+    # # add_repetition_to_text("../data/tc-train.tsv",
+    # #                        "../data/tc-train-repetition.tsv")
+
+    add_sequence_lengths('../data/tc-train.tsv')
+    add_sequence_lengths('../data/tc-dev.tsv')
