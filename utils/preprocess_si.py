@@ -1,3 +1,6 @@
+"""
+Preprocessing the datasets for task 1: span identification.
+"""
 import os
 from spacy.lang.en import English
 from nltk.tokenize import sent_tokenize
@@ -11,93 +14,16 @@ TEST_DATA_FOLDER = "../datasets/test-articles/"
 SI_PREDICTIONS_FILE = '../data/dev_predictions_bio.tsv'
 SI_SPANS_FILE = '../data/dev_predictions_spans.txt'
 LABELS_DATA_FOLDER = "../datasets/train-labels-task2-technique-classification/"
-
-
-def get_si_dev_gs(tc_file='../datasets/dev-task-TC-template.out',
-                  outfile='../data/dev-gs.txt'):
-    articles2spans = {}
-    with open(tc_file, encoding='utf8') as f_in:
-        for line in f_in:
-            fields = line[:-1].split('\t')
-            article = fields[0]
-            span_start = int(fields[2])
-            span_end = int(fields[3])
-            try:
-                spans = articles2spans[article]
-            except KeyError:
-                spans = []
-            spans.append((span_start, span_end))
-            articles2spans[article] = spans
-
-    rows = []
-    articles = sorted([article for article in articles2spans])
-    for article in articles:
-        spans = articles2spans[article]
-        spans.sort(key=lambda tup: tup[0])
-        rows_in_article = []
-        for span in spans:
-            span = (article, span[0], span[1])
-            if not rows_in_article:
-                rows_in_article = [span]
-                continue
-            prev_span = rows_in_article[-1]
-            if span[1] <= prev_span[2]:
-                if span[2] <= prev_span[2]:
-                    continue
-                rows_in_article[-1] = (article, prev_span[1], span[2])
-            else:
-                rows_in_article.append(span)
-        rows += rows_in_article
-
-    with open(outfile, 'w', encoding='utf8') as f_out:
-        for row in rows:
-            f_out.write(row[0] + '\t' + str(row[1]) + '\t' + str(row[2]) + '\n')
-
-
-def get_spans_from_text(labels_file, raw_data_folder, file_to_write):
-    """
-    Subtract spans from raw texts and create a new file
-    which contains both labels and spans.
-    
-    :param labels_file: dir of the tab-separated file of form 
-                        document_id - propaganda_label - beginning of span - end of span 
-    :param raw_data_folder: dir of folder with texts
-    :param file_to_write: directory of the file to write
-    """
-    with open(labels_file, encoding='utf8') as f:
-        table = f.readlines()
-        table = [row.split() for row in table]
-
-    open_doc_id = ""
-    open_doc_txt = ""
-    output_table = []
-
-    for row in table:
-        doc_id = row[0]
-        from_id = int(row[2])        # idx of the beginning of the span
-        to_id = int(row[3])          # idx of the end of the span
-
-        # read the file if it's not opened yet
-        if str(doc_id) != open_doc_id:
-            with open(os.path.join(raw_data_folder, "article{}.txt".format(doc_id)), encoding='utf8') as f:
-                open_doc_txt = f.read()
-                open_doc_id = doc_id
-
-        span = open_doc_txt[from_id:to_id].strip().replace('\n', ' ')
-        number_of_repetitions = open_doc_txt.count(span)
-        if number_of_repetitions > 1:
-            output_table.append(row + [span + " " + span] + [str(number_of_repetitions)])
-        else:
-            output_table.append(row + [span] + [str(number_of_repetitions)])
-
-    with open(file_to_write, 'w') as f:
-        for row in output_table:
-            f.write('\t'.join(row) + "\n")
+GENERATED_LABELS_FOLDER = "../datasets/dev-labels-task2-technique-classification/"
 
 
 def annotate_text(raw_data_folder, labels_data_folder, file_to_write,
                   max_sent_len=35, improved_sent_splitting=True,
                   training=True):
+    """
+    Creates a token-level input file for the span identification task and adds
+    sentence IDs to the tokens.
+    """
     # max_sent_len = -1 ==> no sentence splitting
     if max_sent_len == -1:
         # the corresponding if-block can handle this
@@ -180,8 +106,6 @@ def annotate_text(raw_data_folder, labels_data_folder, file_to_write,
                                 continue
                             sentences.append(sent)
                             continue
-
-                        # TODO make this recursive
 
                         # Try splitting based on quotes.
                         quote_fragments, all_ok = punct_based_split_sent(
@@ -340,104 +264,116 @@ def punct_based_split_sent(tokenizer, sent, max_sent_len, punct):
     return sents, longest <= max_sent_len
 
 
-# This relies on predictions ordered by article ID
-def si_predictions_to_spans(si_predictions_file, span_file):
-    with open(span_file, 'w', encoding='utf8') as outfile:
-        with open(si_predictions_file, encoding='utf8') as infile:
-            prev_label = 'O'
-            prev_span_start = '-1'
-            prev_span_end = '-1'
-            prev_article = ''
+# Helper method for labels2bio
+def overlap(l1, l2):
+    if l1 == l2:
+        return True
+    if l1 in l2:
+        return True
+    if l2 in l1:
+        return True
+    return False
 
+
+def labels2bio(span_file, bio_file):
+    """
+    Changes labels from category-specific labels to BIO-style labels.
+    """
+    with open(span_file, encoding='utf8') as infile:
+        with open(bio_file, 'w', encoding='utf8') as outfile:
+            prev_label = 'None'
+            prev_article = '-1'
             first_line = True
             for line in infile:
 
                 # Comments + header
                 if line.startswith('#'):
+                    outfile.write(line)
                     continue
                 if first_line:
                     first_line = False
+                    outfile.write(line)
                     labels = line.strip().split('\t')
                     try:
-                        article_idx = labels.index('document_id')
+                        doc_idx = labels.index('document_id')
                     except ValueError:
-                        article_idx = 0
-                    try:
-                        span_start_idx = labels.index('token_start')
-                    except ValueError:
-                        span_start_idx = 2
-                    try:
-                        span_end_idx = labels.index('token_end')
-                    except ValueError:
-                        span_end_idx = 3
+                        doc_idx = 0
                     try:
                         label_idx = labels.index('label')
                     except ValueError:
-                        label_idx = -1
+                        label_idx = len(labels) - 1
                     continue
 
                 fields = line.strip().split('\t')
-                article = fields[article_idx]
-                span_start = fields[span_start_idx]
-                span_end = fields[span_end_idx]
+                article = fields[doc_idx]
                 label = fields[label_idx]
 
-                prev_span_start = write_prediction(outfile, article, label,
-                                                   span_start, span_end,
-                                                   prev_article, prev_label,
-                                                   prev_span_start,
-                                                   prev_span_end)
-                prev_article = article
+                if label == 'None':
+                    bio_label = 'O'
+                elif overlap(prev_label, label) and prev_article == article:
+                    bio_label = 'I'
+                else:
+                    bio_label = 'B'
                 prev_label = label
-                prev_span_end = span_end
+                prev_article = article
 
-        # Make sure we get the last prediction
-        write_prediction(outfile,
-                         article, label, span_start, span_end,
-                         prev_article, prev_label, prev_span_start,
-                         prev_span_end)
+                fields[label_idx] = bio_label
+                outfile.write('\t'.join(fields))
+                outfile.write('\n')
 
 
-# Helper method for si_predictions_to_spans
-def write_prediction(outfile,
-                     article, label, span_start, span_end,
-                     prev_article, prev_label, prev_span_start, prev_span_end):
-    # Ending a span: I-O, B-O, I-B, B-B, new article
-    if prev_label != 'O' and \
-       (label != 'I' or prev_article != article):
-        outfile.write(prev_article)
-        outfile.write('\t')
-        outfile.write(prev_span_start)
-        outfile.write('\t')
-        outfile.write(prev_span_end)
-        outfile.write('\n')
+def get_si_dev_gs(tc_file='../datasets/dev-task-TC-template.out',
+                  outfile='../data/dev-gs.txt'):
+    """
+    Extracts the gold-standard dev set labels for the span identification task
+    from the dev input for the technique classification task.
+    """
+    articles2spans = {}
+    with open(tc_file, encoding='utf8') as f_in:
+        for line in f_in:
+            fields = line[:-1].split('\t')
+            article = fields[0]
+            span_start = int(fields[2])
+            span_end = int(fields[3])
+            try:
+                spans = articles2spans[article]
+            except KeyError:
+                spans = []
+            spans.append((span_start, span_end))
+            articles2spans[article] = spans
 
-    # Starting a new span: O-B, O-I, I-B, B-B, new article
-    if label == 'B' or (label == 'I' and prev_label == 'O') \
-            or prev_article != article:
-        # Update the start of the current label span
-        return span_start
-    return prev_span_start
+    rows = []
+    articles = sorted([art for art in articles2spans])
+    for article in articles:
+        spans = articles2spans[article]
+        spans.sort(key=lambda tup: tup[0])
+        rows_in_article = []
+        for span in spans:
+            span = (article, span[0], span[1])
+            if not rows_in_article:
+                rows_in_article = [span]
+                continue
+            prev_span = rows_in_article[-1]
+            if span[1] <= prev_span[2]:
+                if span[2] <= prev_span[2]:
+                    continue
+                rows_in_article[-1] = (article, prev_span[1], span[2])
+            else:
+                rows_in_article.append(span)
+        rows += rows_in_article
 
+    with open(outfile, 'w', encoding='utf8') as f_out:
+        for row in rows:
+            f_out.write(row[0] + '\t' + str(row[1]) + '\t' + str(row[2]) + '\n')
 
-def dump_repetition(file_to_read, file_to_write):
-    with open(file_to_read, "r") as fl:
-        lines = fl.readlines()
-
-    with open(file_to_write, "w") as fl:
-        for line in lines:
-            columns = line.strip().split("\t")
-            if columns[1] == "Repetition":
-                columns[4] = columns[4] + " " + columns[4]
-            fl.write("\t".join(columns) + "\n")
 
 def generate_labels_folder(file_with_labels, new_folder_dir):
     """
-    The function which is used to create a folder which contains individual files with labels.
-    This folder could be used as labels_data_folder argument for the annotate_data function.
-     
+    Creates a folder which contains individual files with labels that can be
+    used as labels_data_folder argument for the annotate_data function.
+
     :param file_with_labels: in our case, dev-task-TC-template.out
-    :param new_folder_dir: 
+    :param new_folder_dir:
     """
     document_id2spans = dict()
 
@@ -452,38 +388,41 @@ def generate_labels_folder(file_with_labels, new_folder_dir):
             document_id2spans[document_id].append((span_start, span_end))
 
     for document_id in document_id2spans.keys():
-        new_filename = "{}article{}.task2-TC.labels".format(new_folder_dir, document_id)
+        new_filename = "{}article{}.task2-TC.labels".format(new_folder_dir,
+                                                            document_id)
         with open(new_filename, "w") as file:
             for span_start, span_end in document_id2spans[document_id]:
-                output_line = "{}\tDumb_class\t{}\t{}\n".format(document_id, span_start, span_end)
+                output_line = "{}\tDumb_class\t{}\t{}\n".format(document_id,
+                                                                span_start,
+                                                                span_end)
                 file.write(output_line)
 
 
-
 if __name__ == '__main__':
-    ### Stuff which Maxim and Sam used to generate spans for development file
-    # GENERATED_LABELS_FOLDER = "../datasets/dev-labels-task2-technique-classification/"
-    # generate_labels_folder(TC_LABELS_FILE_DEV, GENERATED_LABELS_FOLDER)
-    # annotate_text(DEV_DATA_FOLDER, GENERATED_LABELS_FOLDER,
-    #               "../data/train+dev-task1.tsv",
-    #               improved_sent_splitting=True)
-
-    # get_spans_from_text(TC_LABELS_FILE_DEV, DEV_DATA_FOLDER, "../data/dev-task2-TC-with-spans.txt")
-    # get_spans_from_text(TC_LABELS_FILE_DEV, DEV_DATA_FOLDER, "../data/dev-task2-TC-with-spans-with-repetition.txt")
-
-    # dump_repetition("../data/train-task2-TC-with-spans.txt", "../data/dumb-train-task2-TC-with-spans.txt")
-
-    # annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
-    #               '../data/train-improved-FULL-LABELS.tsv',
-    #               improved_sent_splitting=True)
-
-    # annotate_text(DEV_DATA_FOLDER, None,
-    #               "../data/dev-improved.tsv",
-    #               improved_sent_splitting=True,
-    #               training=False)
+    # Preprocessing the training set as input for fitting the model, and
+    # the development/test sets as input for predictions:
+    annotate_text(TRAIN_DATA_FOLDER, LABELS_DATA_FOLDER,
+                  '../data/si-train-FULL-LABELS.tsv',
+                  improved_sent_splitting=True)
+    labels2bio('../data/si-train-FULL-LABELS.tsv',
+               '../data/si-train.tsv')
+    annotate_text(DEV_DATA_FOLDER, None,
+                  "../data/si-dev.tsv",
+                  improved_sent_splitting=True,
+                  training=False)
     annotate_text(TEST_DATA_FOLDER, None,
-                  "../data/test-improved.tsv",
+                  "../data/si-test.tsv",
                   improved_sent_splitting=True,
                   training=False)
 
-    # get_si_dev_gs()
+    # Dev set labels for checking model performance without having to upload
+    # predictions:
+    get_si_dev_gs()
+
+    # Dev set as input for training:
+    generate_labels_folder(TC_LABELS_FILE_DEV, GENERATED_LABELS_FOLDER)
+    annotate_text(DEV_DATA_FOLDER, GENERATED_LABELS_FOLDER,
+                  "../data/si-train+dev-FULL-LABELS.tsv",
+                  improved_sent_splitting=True)
+    labels2bio('../data/si-train+dev-FULL-LABELS.tsv',
+               '../data/si-train+dev.tsv')
