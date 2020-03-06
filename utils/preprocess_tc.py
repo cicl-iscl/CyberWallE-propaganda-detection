@@ -69,9 +69,9 @@ def get_spans_from_text(labels_file, raw_data_folder, file_to_write,
 
         if context == "sentence":
             if label == "Repetition":
-                text = span + " [SEP] " + span
+                text = text + " [SEP] " + text
             else:
-                text = span + " [SEP] " + get_context(open_doc_txt, span, from_id, to_id)
+                text = text + " [SEP] " + get_context(open_doc_txt, text, from_id, to_id)
             output_table.append(row + [text])
 
     with open(file_to_write, 'w', encoding='utf8') as f:
@@ -131,6 +131,9 @@ if __name__ == '__main__':
     # get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER,
     #                     "../data/tc-train-repetition.tsv",
     #                     add_repetition_text=True)
+    get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER,
+                        "../data/tc-train-context.tsv",
+                        context="sentence")
     # get_spans_from_text(TC_LABELS_FILE_DEV, DEV_DATA_FOLDER,
     #                     "../data/tc-dev-repetition.tsv",
     #                     add_repetition_text=True)
