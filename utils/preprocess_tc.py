@@ -12,7 +12,8 @@ TEST_DATA_FOLDER = "../datasets/test-articles/"
 
 
 def get_spans_from_text(labels_file, raw_data_folder, file_to_write,
-                        add_repetition_count=False, add_repetition_text=False):
+                        add_repetition_count=False, add_repetition_text=False,
+                        context=None):
     """
     Subtracts spans from raw texts and creates a new file
     which contains both labels and spans.
@@ -21,6 +22,9 @@ def get_spans_from_text(labels_file, raw_data_folder, file_to_write,
         document_id    propaganda_label    beginning of span    end of span
     :param raw_data_folder: dir of folder with texts
     :param file_to_write: directory of the file to write
+    :param add_repetition_count: add the number of the span occurrences in the given document as a feature
+    :param add_repetition_text:
+    :param context: add the context in which occurred the span to the text of the span separated by [SEP]
     """
     with open(labels_file, encoding='utf8') as f:
         table = f.readlines()
@@ -37,6 +41,7 @@ def get_spans_from_text(labels_file, raw_data_folder, file_to_write,
 
     for row in table:
         doc_id = row[0]
+        label = row[1]
         from_id = int(row[2])        # idx of the beginning of the span
         to_id = int(row[3])          # idx of the end of the span
 
@@ -51,20 +56,46 @@ def get_spans_from_text(labels_file, raw_data_folder, file_to_write,
         span = open_doc_txt[from_id:to_id].strip()
         text = span.replace('\n', ' ')
 
-        if add_repetition_count or add_repetition_text:
-            n_reps = open_doc_txt.count(span)
-            if add_repetition_text and n_reps > 1:
-                text += ' ' + text
-        if add_repetition_count:
-            # -1 to count repetitions instead of occurrences
-            output_table.append(row + [text] + [str(n_reps - 1)])
-        else:
+        if context is None:
+            if add_repetition_count or add_repetition_text:
+                n_reps = open_doc_txt.count(span)
+                if add_repetition_text and n_reps > 1:
+                    text += ' ' + text
+            if add_repetition_count:
+                # -1 to count repetitions instead of occurrences
+                output_table.append(row + [text] + [str(n_reps - 1)])
+            else:
+                output_table.append(row + [text])
+
+        if context == "sentence":
+            if label == "Repetition":
+                text = span + " [SEP] " + span
+            else:
+                text = span + " [SEP] " + get_context(open_doc_txt, span, from_id, to_id)
             output_table.append(row + [text])
 
     with open(file_to_write, 'w', encoding='utf8') as f:
         for row in output_table:
             f.write('\t'.join(row) + "\n")
 
+def get_context(open_doc_txt, span_txt, from_id, to_id):
+    output_prefix = ""
+    output_suffix = ""
+
+    for c in reversed(open_doc_txt[:from_id]):
+        if c in "!?." or c == "\n":
+            output_prefix = "".join(reversed(output_prefix))
+            break
+        else:
+            output_prefix += c
+
+    for c in open_doc_txt[to_id:]:
+        output_suffix += c
+        if c in "!?." or c == "\n":
+            break
+            output_prefix += output_prefix
+
+    return (output_prefix + span_txt + output_suffix).replace("\n", "")
 
 def add_repetition_to_text(file_to_read, file_to_write):
     with open(file_to_read, "r", encoding='utf8') as fl:
@@ -106,5 +137,6 @@ if __name__ == '__main__':
     # # add_repetition_to_text("../data/tc-train.tsv",
     # #                        "../data/tc-train-repetition.tsv")
 
-    add_sequence_lengths('../data/tc-train.tsv')
-    add_sequence_lengths('../data/tc-dev.tsv')
+    # add_sequence_lengths('../data/tc-train.tsv')
+    # add_sequence_lengths('../data/tc-dev.tsv')
+    pass
