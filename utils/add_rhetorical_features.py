@@ -217,13 +217,13 @@ def annotate_tc(in_file):
 
 if __name__ == "__main__":
     ### Task 1: Span identification
-    # init(strategies_full)
-    # parse_input_file_si('../data/train-improved-sentiwordnet.tsv',
-    #                     '../data/train-improved-sentiwordnet-arguingfullindiv.tsv')
-    # parse_input_file_si('../data/dev-improved-sentiwordnet.tsv',
-    #                     '../data/dev-improved-sentiwordnet-arguingfullindiv.tsv')
-    # parse_input_file_si('../data/test-improved-sentiwordnet.tsv',
-    #                     '../data/test-improved-sentiwordnet-arguingfullindiv.tsv')
+    init(strategies_full)
+    parse_input_file_si('../data/train-improved-sentiwordnet.tsv',
+                        '../data/train-improved-sentiwordnet-arguingfullindiv.tsv')
+    parse_input_file_si('../data/dev-improved-sentiwordnet.tsv',
+                        '../data/dev-improved-sentiwordnet-arguingfullindiv.tsv')
+    parse_input_file_si('../data/test-improved-sentiwordnet.tsv',
+                        '../data/test-improved-sentiwordnet-arguingfullindiv.tsv')
 
     ### Task 2: Technique identification
     init(strategies_full)
@@ -237,3 +237,4 @@ if __name__ == "__main__":
     regexes.pop('rhetoricalquestion')
     annotate_tc('../data/tc-train.tsv')
     annotate_tc('../data/tc-dev.tsv')
+    annotate_tc('../data/tc-test.tsv')

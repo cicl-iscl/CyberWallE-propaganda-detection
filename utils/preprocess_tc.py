@@ -6,6 +6,7 @@ import os
 
 TC_LABELS_FILE = "../datasets/train-task2-TC.labels"
 TC_LABELS_FILE_DEV = "../datasets/dev-task-TC-template.out"
+TC_LABELS_FILE_TEST = "../datasets/test-task-TC-template.out"
 TRAIN_DATA_FOLDER = "../datasets/train-articles/"
 DEV_DATA_FOLDER = "../datasets/dev-articles/"
 TEST_DATA_FOLDER = "../datasets/test-articles/"
@@ -71,12 +72,14 @@ def get_spans_from_text(labels_file, raw_data_folder, file_to_write,
             if label == "Repetition":
                 text = text + " [SEP] " + text
             else:
-                text = text + " [SEP] " + get_context(open_doc_txt, text, from_id, to_id)
+                text = text + " [SEP] " + get_context(open_doc_txt, text,
+                                                      from_id, to_id)
             output_table.append(row + [text])
 
     with open(file_to_write, 'w', encoding='utf8') as f:
         for row in output_table:
             f.write('\t'.join(row) + "\n")
+
 
 def get_context(open_doc_txt, span_txt, from_id, to_id):
     output_prefix = ""
@@ -96,6 +99,7 @@ def get_context(open_doc_txt, span_txt, from_id, to_id):
             output_prefix += output_prefix
 
     return (output_prefix + span_txt + output_suffix).replace("\n", "")
+
 
 def add_repetition_to_text(file_to_read, file_to_write):
     with open(file_to_read, "r", encoding='utf8') as fl:
@@ -121,25 +125,47 @@ def add_sequence_lengths(in_file):
             f.write(line.strip() + '\t' + str(length) + '\n')
 
 
-if __name__ == '__main__':
-    # get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER,
-    #                     "../data/tc-train.tsv", add_repetition_count=True)
-    # get_spans_from_text(TC_LABELS_FILE_DEV, DEV_DATA_FOLDER,
-    #                     "../data/tc-dev.tsv", add_repetition_count=True)
+def add_question_marks(in_file):
+    with open(in_file, encoding='utf8') as f:
+        lines = f.readlines()
 
-    # # For the 100% BERT model:
-    # get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER,
-    #                     "../data/tc-train-repetition.tsv",
-    #                     add_repetition_text=True)
+    with open(in_file, 'w', encoding='utf8') as f:
+        f.write(lines[0].strip() + '\tquestion\n')
+        for line in lines[1:]:
+            f.write(line.strip() + '\t')
+            text = line.split('\t')[4]
+            if '?' in text:
+                f.write('1\n')
+            else:
+                f.write('0\n')
+
+
+if __name__ == '__main__':
+    ### For the 100% BERT model:
+    add_repetition_to_text("../data/tc-train.tsv",
+                           "../data/tc-train-repetition.tsv")
     get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER,
                         "../data/tc-train-context.tsv",
                         context="sentence")
-    # get_spans_from_text(TC_LABELS_FILE_DEV, DEV_DATA_FOLDER,
-    #                     "../data/tc-dev-repetition.tsv",
-    #                     add_repetition_text=True)
-    # # add_repetition_to_text("../data/tc-train.tsv",
-    # #                        "../data/tc-train-repetition.tsv")
+    get_spans_from_text(TC_LABELS_FILE_DEV, DEV_DATA_FOLDER,
+                        "../data/tc-dev-repetition.tsv",
+                        add_repetition_text=True)
+    get_spans_from_text(TC_LABELS_FILE_TEST, TEST_DATA_FOLDER,
+                        "../data/tc-test-repetition.tsv",
+                        add_repetition_text=True)
 
-    # add_sequence_lengths('../data/tc-train.tsv')
-    # add_sequence_lengths('../data/tc-dev.tsv')
-    pass
+    ### For the composite models:
+    get_spans_from_text(TC_LABELS_FILE, TRAIN_DATA_FOLDER,
+                        "../data/tc-train.tsv", add_repetition_count=True)
+    get_spans_from_text(TC_LABELS_FILE_DEV, DEV_DATA_FOLDER,
+                        "../data/tc-dev.tsv", add_repetition_count=True)
+    get_spans_from_text(TC_LABELS_FILE_TEST, TEST_DATA_FOLDER,
+                        "../data/tc-test.tsv", add_repetition_count=True)
+
+    add_sequence_lengths('../data/tc-train.tsv')
+    add_sequence_lengths('../data/tc-dev.tsv')
+    add_sequence_lengths('../data/tc-test.tsv')
+
+    add_question_marks('../data/tc-train.tsv')
+    add_question_marks('../data/tc-dev.tsv')
+    add_question_marks('../data/tc-test.tsv')

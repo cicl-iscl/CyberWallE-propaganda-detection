@@ -1,5 +1,5 @@
 # Changes labels from category-specific labels to BIO-style labels.
-# import sys
+
 from spacy.lang.en import English
 
 
@@ -156,17 +156,18 @@ def annotate_sequences(lex, in_file, nlp):
 
 if __name__ == '__main__':
     ### Task 1: Span identification
-    # lex = parse_sentiwordnet(SENTIWORDNET)
-    # nlp = English()
-    # annotate_tokens(lex, '../data/train-improved.tsv',
-    #                 '../data/train-improved-sentiwordnet.tsv', nlp, True)
-    # annotate_tokens(lex, '../data/dev-improved.tsv',
-    #                 '../data/dev-improved-sentiwordnet.tsv', nlp, True)
-    # annotate_tokens(lex, '../data/test-improved.tsv',
-    #                 '../data/test-improved-sentiwordnet.tsv', nlp, True)
+    lex = parse_sentiwordnet(SENTIWORDNET)
+    nlp = English()
+    annotate_tokens(lex, '../data/train-improved.tsv',
+                    '../data/train-improved-sentiwordnet.tsv', nlp, True)
+    annotate_tokens(lex, '../data/dev-improved.tsv',
+                    '../data/dev-improved-sentiwordnet.tsv', nlp, True)
+    annotate_tokens(lex, '../data/test-improved.tsv',
+                    '../data/test-improved-sentiwordnet.tsv', nlp, True)
 
     ### Task 2: Technique identification
     lex = parse_sentiwordnet(SENTIWORDNET)
     nlp = English()
     annotate_sequences(lex, '../data/tc-train.tsv', nlp)
     annotate_sequences(lex, '../data/tc-dev.tsv', nlp)
+    annotate_sequences(lex, '../data/tc-test.tsv', nlp)
