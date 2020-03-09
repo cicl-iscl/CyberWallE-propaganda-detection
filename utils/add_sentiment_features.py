@@ -128,7 +128,7 @@ def annotate_sequences(lex, in_file, nlp):
         lines = f.readlines()
 
     with open(in_file, 'w', encoding='utf8') as f:
-        f.write(lines[0].strip() + '\thighest_pos' + '\thighest_neg\n')
+        f.write(lines[0].strip() + '\thighest_pos\thighest_neg\n')
         for line in lines[1:]:
             text = line.split('\t')[4]
             highest_pos, highest_neg = 0.0, 0.0
