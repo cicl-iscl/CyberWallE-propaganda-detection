@@ -124,4 +124,5 @@ def normalize_string(input):
 
 if __name__ == '__main__':
     # get_repetition_features(TC_LABELS_FILE, TRAIN_DATA_FOLDER, "../data/tc-train-complex-repetitions-short.tsv")
-    get_repetition_features(TC_LABELS_FILE_DEV, DEV_DATA_FOLDER, "../data/tc-dev-complex-repetitions.tsv")
+    # get_repetition_features(TC_LABELS_FILE_DEV, DEV_DATA_FOLDER, "../data/tc-dev-complex-repetitions.tsv")
+    get_repetition_features(TC_LABELS_FILE_TEST, TEST_DATA_FOLDER, "../data/tc-test-complex-repetitions.tsv")
