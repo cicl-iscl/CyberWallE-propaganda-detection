@@ -323,7 +323,7 @@ def labels2bio(span_file, bio_file):
 
 
 def get_si_dev_gs(tc_file='../datasets/dev-task-TC-template.out',
-                  outfile='../data/dev-gs.txt'):
+                  outfile='../data/si-dev-GS.txt'):
     """
     Extracts the gold-standard dev set labels for the span identification task
     from the dev input for the technique classification task.
@@ -418,6 +418,9 @@ if __name__ == '__main__':
     # Dev set labels for checking model performance without having to upload
     # predictions:
     get_si_dev_gs()
+    # For feature ablation studies:
+    get_si_dev_gs(tc_file='../datasets/test-task-TC-template.out',
+                  outfile='../data/si-test-GS.txt')
 
     # Dev set as input for training:
     generate_labels_folder(TC_LABELS_FILE_DEV, GENERATED_LABELS_FOLDER)
