@@ -1,9 +1,10 @@
 .idea/
 */.ipynb_checkpoints
-utils/ibm_api_config.py
 */__pycache__
 
-# Files in the data folder
-*.tff
-*.tsv
-*.txt
+utils/ibm_api_config.py
+
+*_LOCAL.*
+
+data/*
+!*.md

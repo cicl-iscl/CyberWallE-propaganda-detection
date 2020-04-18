@@ -6,4 +6,4 @@
 - `eda`: analyzing label distributions, sentence lengths and other features of the given data
 - `models`: our models
 - `tools` (from the organizers, empty in the remote): scripts for evaluating the data
-- `utils`: data preprocessing and evaluation
+- `utils`: data pre- and post-processing and evaluation

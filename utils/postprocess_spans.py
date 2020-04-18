@@ -1,3 +1,8 @@
+"""
+Span identification post-processing.
+Merges predicted spans that are separated by short gaps.
+"""
+
 SPANS_FILE = 'spans.txt'
 MIN_GAP_LENGTH = 25
 

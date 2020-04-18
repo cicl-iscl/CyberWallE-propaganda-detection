@@ -1,5 +1,11 @@
-# Adapted from tools/task-SI_scorer.py
-# (Giovanni Da San Martino 2019, GPL license 0.1)
+"""
+Span identification evaluation.
+Used for inspecting the technique-level recall scores.
+
+Adapted from tools/task-SI_scorer.py
+(Giovanni Da San Martino, 2019, GPL license 0.1)
+
+"""
 
 import importlib
 import inspect
