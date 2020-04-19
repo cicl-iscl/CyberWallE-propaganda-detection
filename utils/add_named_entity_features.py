@@ -1,9 +1,10 @@
+"""
+Named entity features for the technique classification task.
+Encodes the presence of different kinds of named entities in a given text
+fragment (multiple binary features).
+"""
 from collections import Counter
 import spacy
-import re
-
-
-REGEX = re.compile('\\bamerica\\b')
 
 
 def search(nlp, text, features):
@@ -75,44 +76,6 @@ def match_all_ne(nlp, in_file):
                  reverse=True))
 
 
-def find_america(text):
-    if 'america' not in text:
-        return '0'
-    for phrase in ['american people', 'americans', 'american citizen']:
-        if phrase in text:
-            return '1'
-    if REGEX.search(text):
-        return '1'
-    return '0'
-
-
-def annotate_file_america(in_file):
-    with open(in_file, encoding='utf8') as f:
-        lines = f.readlines()
-
-    with open(in_file, 'w', encoding='utf8') as f:
-        f.write(lines[0].strip() + '\tamerica\n')
-        for line in lines[1:]:
-            f.write(line.strip() + '\t')
-            text = line.split('\t')[4].lower()
-            f.write(find_america(text) + '\n')
-
-
-def annotate_file_america_simple(in_file):
-    with open(in_file, encoding='utf8') as f:
-        lines = f.readlines()
-
-    with open(in_file, 'w', encoding='utf8') as f:
-        f.write(lines[0].strip() + '\tamerica_simple\n')
-        for line in lines[1:]:
-            f.write(line.strip() + '\t')
-            text = line.split('\t')[4].lower()
-            if 'america' in text:
-                f.write('1\n')
-            else:
-                f.write('0\n')
-
-
 nlp = spacy.load('en_core_web_sm')
 # match_all_ne(nlp, '../data/tc-train.tsv')
 # [('ORG', 729), ('NORP', 573), ('GPE', 522), ('PERSON', 507),
@@ -129,11 +92,3 @@ features = ['ORG',
 annotate_file_ner(nlp, features, '../data/tc-train.tsv')
 annotate_file_ner(nlp, features, '../data/tc-dev.tsv')
 annotate_file_ner(nlp, features, '../data/tc-test.tsv')
-
-annotate_file_america('../data/tc-train.tsv')
-annotate_file_america('../data/tc-dev.tsv')
-annotate_file_america('../data/tc-test.tsv')
-
-annotate_file_america_simple('../data/tc-train.tsv')
-annotate_file_america_simple('../data/tc-dev.tsv')
-annotate_file_america_simple('../data/tc-test.tsv')

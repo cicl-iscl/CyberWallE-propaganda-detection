@@ -1,3 +1,11 @@
+"""
+Emotion features for the technique classifation task. Used for preliminary
+experiments (-> feature ablation), but not in the final model.
+Five binary features encoding the fear, sadnass, joy, anger and disgust scores
+for a given text fragment.
+The scores are obtained with IBM's Natural Language Understanding tool:
+https://cloud.ibm.com/catalog/services/natural-language-understanding
+"""
 from ibm_watson import NaturalLanguageUnderstandingV1
 from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
 from ibm_cloud_sdk_core.api_exception import ApiException

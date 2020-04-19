@@ -1,3 +1,8 @@
+"""
+Part-of-speech tags of the tokens used as input to the span identification
+task. One-hot encoding (saved as 15 binary features).
+"""
+
 import numpy as np
 import spacy
 
@@ -66,10 +71,9 @@ def parse_input_file(infile, outfile):
             prev_article = article
 
 
-if __name__ == "__main__":
-    parse_input_file('../data/train-improved-sentiwordnet-arguingfullindiv.tsv',
-                     '../data/train-improved-sentiwordnet-arguingfullindiv-pos.tsv')
-    parse_input_file('../data/dev-improved-sentiwordnet-arguingfullindiv.tsv',
-                     '../data/dev-improved-sentiwordnet-arguingfullindiv-pos.tsv')
-    parse_input_file('../data/test-improved-sentiwordnet-arguingfullindiv.tsv',
-                     '../data/test-improved-sentiwordnet-arguingfullindiv-pos.tsv')
+parse_input_file('../data/train-improved-sentiwordnet-arguingfullindiv.tsv',
+                 '../data/train-improved-sentiwordnet-arguingfullindiv-pos.tsv')
+parse_input_file('../data/dev-improved-sentiwordnet-arguingfullindiv.tsv',
+                 '../data/dev-improved-sentiwordnet-arguingfullindiv-pos.tsv')
+parse_input_file('../data/test-improved-sentiwordnet-arguingfullindiv.tsv',
+                 '../data/test-improved-sentiwordnet-arguingfullindiv-pos.tsv')
