@@ -1,5 +1,13 @@
-# Parses the argument lexicon by Somasundaran, Ruppenhofer & Wiebe.
+"""
+Parses the argument lexicon by Somasundaran, Ruppenhofer & Wiebe (2007):
+http://people.cs.pitt.edu/~wiebe/pubs/papers/sigdial07.pdf
+http://mpqa.cs.pitt.edu/lexicons/arg_lexicon/
 
+Span identification task: Encodes whether a given token is contained in a
+phrase that matches a rhetorical pattern.
+Technique classification: Encodes whether a given fragment contains such a
+rhetorically salient phrase.
+"""
 import re
 
 
@@ -70,7 +78,8 @@ def parse_demo_file(filename):
     with open(filename, encoding='utf8') as f:
         for line in f:
             line = line.strip().lower()
-            line = line.replace('\\', '')  # Only for testing with data\arglex\patterntest.txt
+            # Only for testing with data\arglex\patterntest.txt:
+            line = line.replace('\\', '')
             print(line)
             for strategy in regexes:
                 for regex in regexes[strategy]:
@@ -201,7 +210,7 @@ def annotate_tc(in_file):
                 f.write('\t' + str(matched))
                 if matched:
                     try:
-                        matched_strategies[strategy] = matched_strategies[strategy] + 1
+                        matched_strategies[strategy] += 1
                     except KeyError:
                         matched_strategies[strategy] = 1
             f.write('\n')

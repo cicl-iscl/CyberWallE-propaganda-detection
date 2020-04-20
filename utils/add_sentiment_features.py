@@ -1,5 +1,18 @@
-# Changes labels from category-specific labels to BIO-style labels.
+"""
+Sentiment features for the span identification task.
+Encodes how positive and how negative a given token is.
 
+Based on SentiWordNet by Esuli & Sebastiani (2006):
+https://github.com/aesuli/sentiwordnet
+https://github.com/aesuli/SentiWordNet/blob/master/papers/LREC06.pdf
+
+Also creates sentiment features we briefly used in preliminary experiments:
+- Span identification: single feature encoding how positive or negative a given
+  token is (based on SentiWords by Gatti, Guerini & Turchi, 2016,
+  https://hlt-nlp.fbk.eu/technologies/sentiwords)
+- Technique classification: two features encoding the SentiWordNet scores of
+  the most positive and negative tokens in a given text fragment.
+"""
 from spacy.lang.en import English
 
 
@@ -151,7 +164,8 @@ def annotate_sequences(lex, in_file, nlp):
                     highest_pos = pos
                 if neg > highest_neg:
                     highest_neg = neg
-            f.write(line.strip() + '\t' + str(highest_pos) + '\t' + str(highest_neg) + '\n')
+            f.write(line.strip() + '\t' + str(highest_pos) + '\t' +
+                    str(highest_neg) + '\n')
 
 
 if __name__ == '__main__':
