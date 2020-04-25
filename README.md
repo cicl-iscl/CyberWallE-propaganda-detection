@@ -1,4 +1,4 @@
-# CyberWallE: SemEval 2020 Task 11: Propaganda Detection
+# Team CyberWallE at SemEval-2020 Task 11: Propaganda Detection
 
 - `baselines` (from the organizers, empty in the remote): baseline code + predictions
 - `data` (empty in the remote): training/dev set input files with features, lexica for semantic + rhetorical structures
