@@ -8,7 +8,9 @@ We use a bi-LSTM architecture in the SI subtask and train a complex ensemble mod
 Our architectures are built using embeddings from BERT in combination with additional lexical features and extensive label post-processing.
 Our systems achieve a rank of 8 out of 35 teams in the SI subtask (F1-score: 43.86%) and 8 out of 31 teams in the TC subtask (F1-score: 57.37%).
 
-Our [article](https://github.com/cicl-iscl/CyberWallE-propaganda-detection/blob/master/Final%20Paper%20Submission/CyberWallE_2020.pdf) provides an extensive exploration of various embedding, feature and classifier combinations.
+Our [article](https://github.com/cicl-iscl/CyberWallE-propaganda-detection/blob/master/paper/CyberWallE_2020.pdf) provides an extensive exploration of various embedding, feature and classifier combinations.
+Our work is also summarized in a [poster](https://github.com/cicl-iscl/CyberWallE-propaganda-detection/blob/master/paper/CyberWallE_2020_poster.pdf).
+
 The repository is organized as follows:
 
 - `baselines` (from the organizers, empty in the remote): Baseline code + predictions
@@ -34,7 +36,7 @@ month = "December",
 
 ## Updated results
 
-After the camera-ready deadline, the task organizers announced that they had found a bug in the evaluation script. 
+After the camera-ready deadline, the task organizers announced that they had found a bug in the evaluation script.
 Fixing the bug changed the scores on the test data.
 We thus achieve rank **12** of 35 in the span identification subtask (F1: 43.59%) and rank **6** of 31 in the technique identification task (F1: 58.99%).
 
@@ -58,4 +60,4 @@ Here is an updated version of Table 3 in our paper:
 | Bandwagon, reductio ad hitlerum | 0.5 | 8.4 | 22.2 | 12.2 | 12.2 | -10.0 |
 | All classes | 100 | 63.8 | 66.4 | 57.4 | 58.9 | -7.5 |
 
-> Table 3: Technique-level breakdown of model performances for both subtasks. The proportions, recallvalues and F1-scores are percentages. The change of the F1-score is given in percentage points.
+> Table 3: Technique-level breakdown of model performances for both subtasks. The proportions, recall values and F1-scores are percentages. The change of the F1-score is given in percentage points.
